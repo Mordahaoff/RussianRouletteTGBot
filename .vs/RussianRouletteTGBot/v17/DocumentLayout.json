@@ -1,0 +1,71 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Artem\\Desktop\\Programs\\RussianRouletteTGBot\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{85B7D737-0047-96D1-0899-9FDEB70722F9}|RussianRouletteTGBot.csproj|c:\\users\\artem\\desktop\\programs\\russianroulettetgbot\\models\\roulettecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{85B7D737-0047-96D1-0899-9FDEB70722F9}|RussianRouletteTGBot.csproj|solutionrelative:models\\roulettecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{85B7D737-0047-96D1-0899-9FDEB70722F9}|RussianRouletteTGBot.csproj|c:\\users\\artem\\desktop\\programs\\russianroulettetgbot\\models\\host.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{85B7D737-0047-96D1-0899-9FDEB70722F9}|RussianRouletteTGBot.csproj|solutionrelative:models\\host.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{85B7D737-0047-96D1-0899-9FDEB70722F9}|RussianRouletteTGBot.csproj|c:\\users\\artem\\desktop\\programs\\russianroulettetgbot\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{85B7D737-0047-96D1-0899-9FDEB70722F9}|RussianRouletteTGBot.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "RouletteContext.cs",
+              "DocumentMoniker": "C:\\Users\\Artem\\Desktop\\Programs\\RussianRouletteTGBot\\Models\\RouletteContext.cs",
+              "RelativeDocumentMoniker": "Models\\RouletteContext.cs",
+              "ToolTip": "C:\\Users\\Artem\\Desktop\\Programs\\RussianRouletteTGBot\\Models\\RouletteContext.cs",
+              "RelativeToolTip": "Models\\RouletteContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-09T11:42:03.326Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Host.cs",
+              "DocumentMoniker": "C:\\Users\\Artem\\Desktop\\Programs\\RussianRouletteTGBot\\Models\\Host.cs",
+              "RelativeDocumentMoniker": "Models\\Host.cs",
+              "ToolTip": "C:\\Users\\Artem\\Desktop\\Programs\\RussianRouletteTGBot\\Models\\Host.cs",
+              "RelativeToolTip": "Models\\Host.cs",
+              "ViewState": "AgIAADsAAAAAAAAAAAAUwF0AAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-07T16:52:27.18Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Artem\\Desktop\\Programs\\RussianRouletteTGBot\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\Artem\\Desktop\\Programs\\RussianRouletteTGBot\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-07T16:52:22.824Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
