@@ -13,5 +13,5 @@ public partial class TypesOfBullet
 
     public short Price { get; set; }
 
-    public virtual ICollection<Game> Games { get; set; } = new List<Game>();
+    public virtual ICollection<Setting> Settings { get; set; } = new List<Setting>();
 }

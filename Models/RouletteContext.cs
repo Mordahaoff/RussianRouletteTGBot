@@ -21,11 +21,17 @@ public partial class RouletteContext : DbContext
 
     public virtual DbSet<Game> Games { get; set; }
 
+    public virtual DbSet<MoneyBonuse> MoneyBonuses { get; set; }
+
     public virtual DbSet<ResultsOfGame> ResultsOfGames { get; set; }
+
+    public virtual DbSet<Setting> Settings { get; set; }
 
     public virtual DbSet<TypesOfBullet> TypesOfBullets { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<UserAchievement> UserAchievements { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -35,11 +41,11 @@ public partial class RouletteContext : DbContext
     {
         modelBuilder.Entity<Achievement>(entity =>
         {
-            entity.HasKey(e => e.IdAchivevement).HasName("achievements_pkey");
+            entity.HasKey(e => e.IdAchievement).HasName("achievements_pkey");
 
             entity.ToTable("achievements");
 
-            entity.Property(e => e.IdAchivevement).HasColumnName("id_achivevement");
+            entity.Property(e => e.IdAchievement).HasColumnName("id_achievement");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Title)
                 .HasMaxLength(255)
@@ -73,9 +79,7 @@ public partial class RouletteContext : DbContext
                 .HasDefaultValue((short)0)
                 .HasColumnName("count_of_rounds");
             entity.Property(e => e.ResultId).HasColumnName("result_id");
-            entity.Property(e => e.TypeOfBulletId)
-                .HasDefaultValue(1)
-                .HasColumnName("type_of_bullet_id");
+            entity.Property(e => e.SettingsId).HasColumnName("settings_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Winning)
                 .HasDefaultValue(0)
@@ -86,13 +90,31 @@ public partial class RouletteContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("games_result_id_fkey");
 
-            entity.HasOne(d => d.TypeOfBullet).WithMany(p => p.Games)
-                .HasForeignKey(d => d.TypeOfBulletId)
-                .HasConstraintName("games_type_of_bullet_id_fkey");
+            entity.HasOne(d => d.Settings).WithMany(p => p.Games)
+                .HasForeignKey(d => d.SettingsId)
+                .HasConstraintName("games_settings_id_fkey");
 
             entity.HasOne(d => d.User).WithMany(p => p.Games)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("games_user_id_fkey");
+        });
+
+        modelBuilder.Entity<MoneyBonuse>(entity =>
+        {
+            entity.HasKey(e => e.IdMoneyBonus).HasName("money_bonuses_pkey");
+
+            entity.ToTable("money_bonuses");
+
+            entity.Property(e => e.IdMoneyBonus).HasColumnName("id_money_bonus");
+            entity.Property(e => e.CollectionTime)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("collection_time");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MoneyBonuses)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("money_bonuses_user_id_fkey");
         });
 
         modelBuilder.Entity<ResultsOfGame>(entity =>
@@ -105,6 +127,30 @@ public partial class RouletteContext : DbContext
             entity.Property(e => e.Title)
                 .HasMaxLength(255)
                 .HasColumnName("title");
+        });
+
+        modelBuilder.Entity<Setting>(entity =>
+        {
+            entity.HasKey(e => e.IdSetting).HasName("settings_pkey");
+
+            entity.ToTable("settings");
+
+            entity.Property(e => e.IdSetting).HasColumnName("id_setting");
+            entity.Property(e => e.CountOfBullets)
+                .HasDefaultValue((short)1)
+                .HasColumnName("count_of_bullets");
+            entity.Property(e => e.TypeOfBulletId)
+                .HasDefaultValue(1)
+                .HasColumnName("type_of_bullet_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.TypeOfBullet).WithMany(p => p.Settings)
+                .HasForeignKey(d => d.TypeOfBulletId)
+                .HasConstraintName("settings_type_of_bullet_id_fkey");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Settings)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("settings_user_id_fkey");
         });
 
         modelBuilder.Entity<TypesOfBullet>(entity =>
@@ -133,7 +179,33 @@ public partial class RouletteContext : DbContext
             entity.Property(e => e.BotStateId)
                 .HasDefaultValue(1)
                 .HasColumnName("bot_state_id");
+            entity.Property(e => e.MaxScore)
+                .HasDefaultValue(0)
+                .HasColumnName("max_score");
+            entity.Property(e => e.Score)
+                .HasDefaultValue(0)
+                .HasColumnName("score");
             entity.Property(e => e.TgId).HasColumnName("tg_id");
+        });
+
+        modelBuilder.Entity<UserAchievement>(entity =>
+        {
+            entity.HasKey(e => e.IdUserAchievement).HasName("user_achievements_pkey");
+
+            entity.ToTable("user_achievements");
+
+            entity.Property(e => e.IdUserAchievement).HasColumnName("id_user_achievement");
+            entity.Property(e => e.AchievementId).HasColumnName("achievement_id");
+            entity.Property(e => e.DateReceived).HasColumnName("date_received");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.Achievement).WithMany(p => p.UserAchievements)
+                .HasForeignKey(d => d.AchievementId)
+                .HasConstraintName("user_achievements_achievement_id_fkey");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UserAchievements)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("user_achievements_user_id_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

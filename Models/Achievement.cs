@@ -5,9 +5,11 @@ namespace RussianRouletteTGBot.Models;
 
 public partial class Achievement
 {
-    public int IdAchivevement { get; set; }
+    public int IdAchievement { get; set; }
 
     public string Title { get; set; } = null!;
 
     public string Description { get; set; } = null!;
+
+    public virtual ICollection<UserAchievement> UserAchievements { get; set; } = new List<UserAchievement>();
 }

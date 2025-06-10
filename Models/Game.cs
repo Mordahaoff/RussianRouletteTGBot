@@ -9,7 +9,7 @@ public partial class Game
 
     public int UserId { get; set; }
 
-    public int TypeOfBulletId { get; set; }
+    public int SettingsId { get; set; }
 
     public int? ResultId { get; set; }
 
@@ -23,7 +23,7 @@ public partial class Game
 
     public virtual ResultsOfGame? Result { get; set; }
 
-    public virtual TypesOfBullet TypeOfBullet { get; set; } = null!;
+    public virtual Setting Settings { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;
 }

@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v9.0": {
       "RussianRouletteTGBot/1.0.0": {
         "dependencies": {
+          "Microsoft.EntityFrameworkCore.Design": "9.0.5",
           "Microsoft.EntityFrameworkCore.Tools": "9.0.5",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.4",
           "Telegram.Bot": "22.5.2-dev.5"
