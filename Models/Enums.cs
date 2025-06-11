@@ -21,9 +21,9 @@ enum TypeOfBullet
     Platinum,
 }
 
-// enum Result
-// {
-//     Win = 1,
-//     Lose,
-//     Collect
-// }
+enum ResultOfGame
+{
+    Win = 1,
+    Lose,
+    Collect
+}

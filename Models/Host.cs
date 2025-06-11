@@ -97,40 +97,34 @@ public class Host
 							case BotState.WaitingState:
 								{
 									var botMessage = "WaitingState : Перечень возможных команд.";
-									var inlineKeyboard = new InlineKeyboardMarkup(new[]
-										{
+									var inlineKeyboard = new InlineKeyboardMarkup(
+										[
 											// first row
-											new []
-											{
+											[
 												InlineKeyboardButton.WithCallbackData("Профиль", "Profile"),
 												InlineKeyboardButton.WithCallbackData("Достижения", "Achievements"),
-											},
+											],
 											// second row
-											new []
-											{
+											[
 												InlineKeyboardButton.WithCallbackData("Бонус", "Bonus"),
 												InlineKeyboardButton.WithCallbackData("История", "History"),
 
-											},
-											new[]
-											{
+											],
+											[
 												InlineKeyboardButton.WithCallbackData("Правила", "Rules"),
 												InlineKeyboardButton.WithCallbackData("Настройки", "Settings"),
-											},
-											new[]
-											{
+											],
+											[
 												InlineKeyboardButton.WithCallbackData("Играть", "Play"),
-											},
-										});
+											],
+										]);
 									await _bot.SendMessage(chat.Id, botMessage, replyMarkup: inlineKeyboard, cancellationToken: token);
 									return;
 								}
 							case BotState.BetState:
 								{
-									// if (int.Parse(msg.Text, out int result) && result > && result <= userDb.MaxScore) ;
-
-									// var botMessage = "BetState : Выберите ставку.";
-									// await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
+									var botMessage = "Пожалуйста, выберите ставку.";
+									await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
 									return;
 								}
 						}
@@ -144,14 +138,15 @@ public class Host
 					var userTg = callbackQuery.From!;
 					var chat = callbackQuery.Message!.Chat;
 
+					var currentState = (BotState)(await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token)).BotStateId;
+
 					Console.WriteLine($"{userTg.FirstName} ({userTg.Id}) нажал на кнопку: [{callbackQuery.Data}]");
 
 					switch (callbackQuery.Data)
 					{
-						case "Profile":
+						case "Profile" when currentState == BotState.WaitingState:
 							{
 								var botMessage = new StringBuilder("CallbackQuery Profile : Информация о профиле.");
-								// Имя, кол-во очков, кол-во игр, кол-во раундов, кол-во побед, кол-во поражений, кол-во сбора
 								var userDb = await _db.Users
 									.Include(u => u.Games)
 									.FirstAsync(u => u.TgId == userTg.Id, token);
@@ -160,9 +155,9 @@ public class Host
 								var score = userDb.Score;
 								var maxScore = userDb.MaxScore;
 								var countOfRounds = userDb.Games.Sum(g => g.CountOfRounds);
-								var countOfWin = userDb.Games.Count(g => g.ResultId == 1); // Win
-								var countOfLose = userDb.Games.Count(g => g.ResultId == 2); // Lose
-								var countOfCollect = userDb.Games.Count(g => g.ResultId == 3); // Collect
+								var countOfWin = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Win); // Win
+								var countOfLose = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose); // Lose
+								var countOfCollect = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect); // Collect
 
 								botMessage.AppendLine($"Никнейм: {name}");
 								botMessage.AppendLine($"Всего очков: {score}");
@@ -175,14 +170,14 @@ public class Host
 								await _bot.SendMessage(chat.Id, botMessage.ToString(), cancellationToken: token);
 								return;
 							}
-						case "Rules":
+						case "Rules" when currentState == BotState.WaitingState:
 							{
 								var botMessage = "CallbackQuery Rules : Информация о правилах.";
 								botMessage += "Правила";
 								await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
 								return;
 							}
-						case "History":
+						case "History" when currentState == BotState.WaitingState:
 							{
 								var botMessage = new StringBuilder("CallbackQuery History : Информация об истории.");
 
@@ -200,7 +195,7 @@ public class Host
 								await _bot.SendMessage(chat.Id, botMessage.ToString(), cancellationToken: token);
 								return;
 							}
-						case "Settings":
+						case "Settings" when currentState == BotState.WaitingState:
 							{
 								var userDb = await _db.Users
 									.Include(u => u.Settings)
@@ -213,19 +208,19 @@ public class Host
 									$"Пуля: {settings.TypeOfBullet.Title} | {settings.TypeOfBullet.Multiplier} | {settings.TypeOfBullet.Price}" +
 									$"Кол-во: {settings.CountOfBullets}";
 
-								var inlineKeyboard = new InlineKeyboardMarkup(new[] {
-									new [] {
+								var inlineKeyboard = new InlineKeyboardMarkup([
+									[
 										InlineKeyboardButton.WithCallbackData("Тип пули", "ChangeBulletsType"),
-									},
-									new [] {
+									],
+									[
 										InlineKeyboardButton.WithCallbackData("Кол-во пуль", "ChangeBulletsCount"),
-									}
-								});
+									]
+								]);
 
 								await _bot.SendMessage(chat.Id, botMessage, replyMarkup: inlineKeyboard, cancellationToken: token);
 								return;
 							}
-						case "Achievements":
+						case "Achievements" when currentState == BotState.WaitingState:
 							{
 								var botMessage = new StringBuilder("CallbackQuery Achievements : Информация о достижениях.");
 								var userDb = await _db.Users
@@ -242,17 +237,17 @@ public class Host
 								await _bot.SendMessage(chat.Id, botMessage.ToString(), cancellationToken: token);
 								return;
 							}
-						case "Play":
+						case "Play" when currentState == BotState.WaitingState:
 							{
 								var botMessage = "CallbackQuery Play : Играть. Выберите ставку.";
 								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id);
-								userDb.BotStateId = 2;
+								userDb.BotStateId = (int)BotState.BetState;
 								_db.Users.Update(userDb);
 								await _db.SaveChangesAsync(token);
 								await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
 								return;
 							}
-						case "Bonus":
+						case "Bonus" when currentState == BotState.WaitingState:
 							{
 								await _bot.SendMessage(chat.Id, "CallbackQuery Bonus : Получение бонуса.", cancellationToken: token);
 								var userDb = await _db.Users.Include(u => u.MoneyBonuses).FirstAsync(u => u.TgId == userTg.Id, token);
@@ -276,7 +271,7 @@ public class Host
 								await _bot.AnswerCallbackQuery(callbackQuery.Id, botMessage, showAlert: true, cancellationToken: token);
 								return;
 							}
-						case "ChangeBulletsType":
+						case "ChangeBulletsType" when currentState == BotState.WaitingState:
 							{
 								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 								userDb.BotStateId = (int)BotState.ChangeBulletsTypeState;
@@ -291,22 +286,22 @@ public class Host
 									botMessage.AppendLine($"{type.Title} | {type.Multiplier} | {type.Price}");
 								}
 
-								var inlineKeyboard = new InlineKeyboardMarkup(new[] {
-									new [] {
+								var inlineKeyboard = new InlineKeyboardMarkup([
+									[
 										InlineKeyboardButton.WithCallbackData("Обычная", "ChangeBulletTo_Common"),
 										InlineKeyboardButton.WithCallbackData("Медная", "ChangeBulletTo_Copper"),
 										InlineKeyboardButton.WithCallbackData("Серебряная", "ChangeBulletTo_Silver"),
-									},
-									new [] {
+									],
+									[
 										InlineKeyboardButton.WithCallbackData("Золотая", "ChangeBulletTo_Golden"),
 										InlineKeyboardButton.WithCallbackData("Платиновая", "ChangeBulletTo_Platinum"),
-									}
-								});
+									]
+								]);
 
 								await _bot.SendMessage(chat.Id, botMessage.ToString(), replyMarkup: inlineKeyboard, cancellationToken: token);
 								return;
 							}
-						case "ChangeBulletsCount":
+						case "ChangeBulletsCount" when currentState == BotState.WaitingState:
 							{
 								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 								userDb.BotStateId = (int)BotState.ChangeBulletsCountState;
@@ -315,79 +310,48 @@ public class Host
 
 								var botMessage = "Выберите число от 1 до 6";
 
-								var inlineKeyboard = new InlineKeyboardMarkup(new[] {
-									new [] {
+								var inlineKeyboard = new InlineKeyboardMarkup([
+									[
 										InlineKeyboardButton.WithCallbackData("1", "ChangeCountTo_1"),
 										InlineKeyboardButton.WithCallbackData("2", "ChangeCountTo_2"),
 										InlineKeyboardButton.WithCallbackData("3", "ChangeCountTo_3"),
-									},
-									new [] {
+									],
+									[
 										InlineKeyboardButton.WithCallbackData("4", "ChangeCountTo_4"),
 										InlineKeyboardButton.WithCallbackData("5", "ChangeCountTo_5"),
 										InlineKeyboardButton.WithCallbackData("6", "ChangeCountTo_6"),
-									}
-								});
+									]
+								]);
 
 								await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
 								return;
 							}
-						case "ChangeBulletTo_Common":
+						case "ChangeBulletTo_Common" when currentState == BotState.ChangeBulletsTypeState:
+						case "ChangeBulletTo_Copper" when currentState == BotState.ChangeBulletsTypeState:
+						case "ChangeBulletTo_Silver" when currentState == BotState.ChangeBulletsTypeState:
+						case "ChangeBulletTo_Golden" when currentState == BotState.ChangeBulletsTypeState:
+						case "ChangeBulletTo_Platinum" when currentState == BotState.ChangeBulletsTypeState:
 							{
 								await HandleCallbackChangeTypeAsync(_db, callbackQuery.Data, userTg.Id, token);
 								return;
 							}
-						case "ChangeBulletTo_Copper":
-							{
-								await HandleCallbackChangeTypeAsync(_db, callbackQuery.Data, userTg.Id, token);
-								return;
-							}
-						case "ChangeBulletTo_Silver":
-							{
-								await HandleCallbackChangeTypeAsync(_db, callbackQuery.Data, userTg.Id, token);
-								return;
-							}
-						case "ChangeBulletTo_Golden":
-							{
-								await HandleCallbackChangeTypeAsync(_db, callbackQuery.Data, userTg.Id, token);
-								return;
-							}
-						case "ChangeBulletTo_Platinum":
-							{
-								await HandleCallbackChangeTypeAsync(_db, callbackQuery.Data, userTg.Id, token);
-								return;
-							}
-						case "ChangeCountTo_1":
+						case "ChangeCountTo_1" when currentState == BotState.ChangeBulletsCountState:
+						case "ChangeCountTo_2" when currentState == BotState.ChangeBulletsCountState:
+						case "ChangeCountTo_3" when currentState == BotState.ChangeBulletsCountState:
+						case "ChangeCountTo_4" when currentState == BotState.ChangeBulletsCountState:
+						case "ChangeCountTo_5" when currentState == BotState.ChangeBulletsCountState:
+						case "ChangeCountTo_6" when currentState == BotState.ChangeBulletsCountState:
 							{
 								await HandleCallbackChangeCountAsync(_db, callbackQuery.Data, userTg.Id, token);
 								return;
 							}
-						case "ChangeCountTo_2":
+						default:
 							{
-								await HandleCallbackChangeCountAsync(_db, callbackQuery.Data, userTg.Id, token);
-								return;
-							}
-						case "ChangeCountTo_3":
-							{
-								await HandleCallbackChangeCountAsync(_db, callbackQuery.Data, userTg.Id, token);
-								return;
-							}
-						case "ChangeCountTo_4":
-							{
-								await HandleCallbackChangeCountAsync(_db, callbackQuery.Data, userTg.Id, token);
-								return;
-							}
-						case "ChangeCountTo_5":
-							{
-								await HandleCallbackChangeCountAsync(_db, callbackQuery.Data, userTg.Id, token);
-								return;
-							}
-						case "ChangeCountTo_6":
-							{
-								await HandleCallbackChangeCountAsync(_db, callbackQuery.Data, userTg.Id, token);
+								var botMessage = "Недопустимая операция.";
+								await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
 								return;
 							}
 					}
-					return;
 				}
 			default:
 				{
