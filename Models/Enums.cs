@@ -1,6 +1,6 @@
 namespace RussianRouletteTGBot.Models;
 
-enum BotState
+public enum BotState
 {
     WaitingState = 1,
     BetState,
@@ -8,11 +8,12 @@ enum BotState
     CollectState,
     WinState,
     LoseState,
+    SettingsState,
     ChangeBulletsTypeState,
     ChangeBulletsCountState
 }
 
-enum TypeOfBullet
+public enum TypeOfBullet
 {
     Common = 1,
     Copper,

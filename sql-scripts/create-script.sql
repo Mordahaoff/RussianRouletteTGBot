@@ -55,7 +55,7 @@ User_ID integer references Users(ID_User) on delete cascade not null,
 Settings_ID integer references Settings(ID_Setting) on delete cascade not null,
 Result_ID integer references Results_of_Game(ID_Result_of_Game) on delete cascade,
 Count_of_Rounds smallint default 0,
-Winning integer default 0,
+Winning integer not null default 0,
 Bet integer not null
 );
 
