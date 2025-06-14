@@ -13,7 +13,7 @@ public partial class Game
 
     public int? ResultId { get; set; }
 
-    public short? CountOfRounds { get; set; }
+    public short CountOfRounds { get; set; }
 
     public int Winning { get; set; }
 

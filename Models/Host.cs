@@ -234,16 +234,17 @@ public class Host
 								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 								var game = await _db.Games
 									.Include(g => g.BulletsInGames)
-									.FirstAsync(g => g.UserId == userDb.IdUser, token);
+									.FirstAsync(g => g.UserId == userDb.IdUser && g.ResultId == null, token);
 
-								if (game.BulletsInGames.Any(item => item.IndexOfBullet == game.CountOfRounds++))
+								short countOfRounds = game.CountOfRounds++;
+								if (game.BulletsInGames.Any(item => item.IndexOfBullet == countOfRounds))
 								{
 									await userDb.SetStateAsync(BotState.LoseState, client, _db, update, token);
 								}
 								else
 								{
 									var botMessage = "Вы спустили курок. Выстрела не последовало.";
-									await _bot.SendMessage(update.Message!.Chat.Id, botMessage, cancellationToken: token);
+									await _bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage, cancellationToken: token);
 									await userDb.SetStateAsync(BotState.ChoiceState, client, _db, update, token);
 								}
 
@@ -340,7 +341,9 @@ public class Host
 
 		if (typeOfBullet.Price > userDb.Score)
 		{
-			botMessage = "Не хватает монет. Возвращение в меню";
+			botMessage = "Не хватает монет. Возвращение в меню настроек.";
+			await userDb.SetStateAsync(BotState.SettingsState, bot, db, update, token);
+			await db.SaveChangesAsync(token);
 		}
 		else
 		{
