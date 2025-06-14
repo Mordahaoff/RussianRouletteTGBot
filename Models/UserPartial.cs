@@ -1,10 +1,7 @@
-using System.Runtime.Serialization;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace RussianRouletteTGBot.Models;
+namespace RussianRouletteTGBot.Models.Entities;
 
 public partial class User
 {
@@ -16,16 +13,16 @@ public partial class User
         var stateInstance = StateFactory.GetState(newState);
         await stateInstance.EnterAsync(client, db, update, token);
 
-        await db.SaveChangesAsync(token);
+        // await db.SaveChangesAsync(token);
     }
 
     public async Task DoStateAsync(ITelegramBotClient client, RouletteContext db, Update update, CancellationToken token)
     {
-        if (Enum.TryParse<BotState>(BotStateId.ToString(), out var botstate))
+        if (Enum.TryParse<BotState>(this.BotStateId.ToString(), out var botstate))
         {
-            var state = StateFactory.GetState(botstate);
-            await state.DoAsync(client, db, update, token);
+            var stateInstance = StateFactory.GetState(botstate);
+            await stateInstance.DoAsync(client, db, update, token);
         }
-        throw new ArgumentException($"Unknown BotStateId: {BotStateId}");
+        throw new ArgumentException($"Unknown BotStateId: {this.BotStateId}");
     }
 }

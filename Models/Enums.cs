@@ -9,8 +9,8 @@ public enum BotState
     WinState,
     LoseState,
     SettingsState,
-    ChangeBulletsTypeState,
-    ChangeBulletsCountState
+    SetBulletsTypeState,
+    SetBulletsCountState
 }
 
 public enum TypeOfBullet

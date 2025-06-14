@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace RussianRouletteTGBot.Models;
+namespace RussianRouletteTGBot.Models.Entities;
 
 public partial class RouletteContext : DbContext
 {
@@ -76,7 +76,7 @@ public partial class RouletteContext : DbContext
             entity.Property(e => e.IdGame).HasColumnName("id_game");
             entity.Property(e => e.Bet).HasColumnName("bet");
             entity.Property(e => e.CountOfRounds)
-                .HasDefaultValue((short)0)
+                .HasDefaultValue((short)1)
                 .HasColumnName("count_of_rounds");
             entity.Property(e => e.ResultId).HasColumnName("result_id");
             entity.Property(e => e.SettingsId).HasColumnName("settings_id");
@@ -107,7 +107,7 @@ public partial class RouletteContext : DbContext
 
             entity.Property(e => e.IdMoneyBonus).HasColumnName("id_money_bonus");
             entity.Property(e => e.CollectionTime)
-                .HasDefaultValueSql("CURRENT_DATE")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("collection_time");
             entity.Property(e => e.UserId).HasColumnName("user_id");

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace RussianRouletteTGBot.Models;
+namespace RussianRouletteTGBot.Models.Entities;
 
 public partial class Game
 {

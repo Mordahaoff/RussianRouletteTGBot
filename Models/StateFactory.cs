@@ -8,11 +8,11 @@ public static class StateFactory
         { BotState.BetState, new BetState() },
         { BotState.ChoiceState, new ChoiceState() },
         { BotState.CollectState, new CollectState() },
-        { BotState.WaitingState, new WaitingState() },
-        { BotState.WaitingState, new WaitingState() },
-        { BotState.WaitingState, new WaitingState() },
-        { BotState.WaitingState, new WaitingState() },
-        { BotState.WaitingState, new WaitingState() },
+        { BotState.WinState, new WinState() },
+        { BotState.LoseState, new LoseState() },
+        { BotState.SettingsState, new SettingsState() },
+        { BotState.SetBulletsTypeState, new SetBulletsTypeState() },
+        { BotState.SetBulletsCountState, new SetBulletsCountState() },
     };
 
     public static State GetState(BotState botState)
