@@ -7,6 +7,8 @@ public partial class User
 {
     public int IdUser { get; set; }
 
+    public string FirstName { get; set; } = null!;
+
     public long TgId { get; set; }
 
     public int BotStateId { get; set; }
@@ -20,6 +22,4 @@ public partial class User
     public virtual ICollection<MoneyBonuse> MoneyBonuses { get; set; } = new List<MoneyBonuse>();
 
     public virtual ICollection<Setting> Settings { get; set; } = new List<Setting>();
-
-    public virtual ICollection<UserAchievement> UserAchievements { get; set; } = new List<UserAchievement>();
 }

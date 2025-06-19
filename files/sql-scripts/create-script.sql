@@ -5,6 +5,7 @@ grant all on schema public to public;
 
 create table Users(
 ID_User serial primary key,
+First_Name varchar(255) not null,
 TG_ID bigint not null,
 Bot_State_ID integer not null default 1,
 Max_score integer not null default 0,
@@ -17,18 +18,18 @@ User_ID integer references Users(ID_User) on delete cascade not null,
 Collection_Time timestamp not null default current_timestamp
 );
 
-create table Achievements(
-ID_Achievement serial primary key,
-Title varchar(255) not null,
-Description text not null
-);
-
-create table User_Achievements(
-ID_User_Achievement serial primary key,
-User_ID integer references Users(ID_User) on delete cascade not null,
-Achievement_ID integer references Achievements(ID_Achievement) on delete cascade not null,
-Date_Received date not null
-);
+--create table Achievements(
+--ID_Achievement serial primary key,
+--Title varchar(255) not null,
+--Description text not null
+--);
+--
+--create table User_Achievements(
+--ID_User_Achievement serial primary key,
+--User_ID integer references Users(ID_User) on delete cascade not null,
+--Achievement_ID integer references Achievements(ID_Achievement) on delete cascade not null,
+--Date_Received date not null
+--);
 
 create table Types_of_Bullet(
 ID_Type_of_Bullet serial primary key,

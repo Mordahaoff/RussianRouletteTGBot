@@ -73,7 +73,7 @@ public class Host
 					if (!await _db.Users.AnyAsync(u => u.TgId == userTg.Id, token) && msg.Text == "/start")
 					{
 						// Добавление нового юзера
-						var userDb = new User() { TgId = userTg.Id, Score = 500 };
+						var userDb = new User() { TgId = userTg.Id, Score = 500, FirstName = userTg.FirstName };
 						await _db.Users.AddAsync(userDb, token);
 						await _db.SaveChangesAsync(token);
 
@@ -83,9 +83,22 @@ public class Host
 						// Начисление бонуса за регистрацию
 						await _db.MoneyBonuses.AddAsync(new MoneyBonuse() { UserId = userDb.IdUser, CollectionTime = DateTime.Now }, token);
 
-						// Вывод информации о возможностях бота при команде /start
-						string botMessage = "Информация о возможностях бота.";
-						await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
+						// var botMessage = new StringBuilder();
+						// botMessage.AppendLine("Приветствую тебя в телеграм-боте <b>“Русская рулетка”</b> от Мордахи.");
+						// botMessage.AppendLine("");
+						// botMessage.AppendLine("Данная версия рулетки отличается тем, что ты обладаешь некоторой валютой и играешь <b>сам с собой</b> на определенную сумму с возможностью преждевременного завершения игры, тем самым повышая количество имеющейся валюты и пробиваясь выше по топу игроков.");
+						// botMessage.AppendLine("Также здесь ты можешь усложнить/облегчить себе игру, выбрав <b>количество пуль</b> в барабане, но помни: <b>чем больше риск, тем больше и выигрыш</b>.");
+						// botMessage.AppendLine("");
+						// botMessage.AppendLine("Подробнее правила расписаны в разделе <b>“Правила”</b>, так что не стесняйся туда жмякать.");
+						// botMessage.AppendLine("");
+						// botMessage.AppendLine("Как новому игроку, мы уже начислили тебе 500 очков. Если проиграешь все, то забирай бонус в разделе <b>“Бонус”</b> каждые 3 часа. Размер бонуса составляет все те же 500 очков.");
+						// botMessage.AppendLine("");
+						// botMessage.AppendLine("Желаю приятных игр и достижения <b>топ-1</b> места среди остальных игроков!");
+
+						string path = "../files/txt/Start.txt";
+						var botMessage = await TxtToStringBuilder.FromTxtToStringBuilder(path, token);
+
+						await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 
 						//  Изменение состояние юзера в БД
 						await userDb.SetStateAsync(BotState.WaitingState, client, _db, update, token);
@@ -116,7 +129,6 @@ public class Host
 							{
 								var chat = callbackQuery.Message!.Chat;
 
-								var botMessage = new StringBuilder("CallbackQuery Profile : Информация о профиле.");
 								var userDb = await _db.Users
 									.Include(u => u.Games)
 									.FirstAsync(u => u.TgId == userTg.Id, token);
@@ -124,68 +136,136 @@ public class Host
 								var name = userTg.FirstName + " " + userTg.LastName;
 								var score = userDb.Score;
 								var maxScore = userDb.MaxScore;
-								var countOfRounds = userDb.Games.Sum(g => g.CountOfRounds);
+								var totalWinning = userDb.Games.Where(g => g.ResultId == (int)ResultOfGame.Win || g.ResultId == (int)ResultOfGame.Collect).Sum(g => g.Winning);
+								var totalLost = userDb.Games.Where(g => g.ResultId == (int)ResultOfGame.Lose).Sum(g => g.Bet);
+								var countOfGames = userDb.Games.Count;
+								var countOfCollect = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect); // Collect
 								var countOfWin = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Win); // Win
 								var countOfLose = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose); // Lose
-								var countOfCollect = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect); // Collect
+								var countOfRounds = userDb.Games.Sum(g => g.CountOfRounds);
+								var ratingPosition = (await _db.Users.OrderByDescending(u => u.Score).ToListAsync(token)).FindIndex(u => u.TgId == userTg.Id) + 1;
 
-								botMessage.AppendLine($"Никнейм: {name}");
-								botMessage.AppendLine($"Всего очков: {score}");
-								botMessage.AppendLine($"Максимум очков: {maxScore}");
-								botMessage.AppendLine($"Всего раундов: {countOfRounds}");
-								botMessage.AppendLine($"Всего побед: {countOfWin}");
-								botMessage.AppendLine($"Всего поражений: {countOfLose}");
-								botMessage.AppendLine($"Всего сборов: {countOfCollect}");
+								var botMessage = new StringBuilder();
+								botMessage.AppendLine($"Профиль <b>{name}</b>");
+								botMessage.AppendLine("");
+								botMessage.AppendLine($"<b>Очки:</b>");
+								botMessage.AppendLine($"— Текущее кол-во очков: <b>{score}</b>");
+								botMessage.AppendLine($"— Максимальное кол-во очков: <b>{maxScore}</b>");
+								botMessage.AppendLine($"— Всего выиграно очков: <b>{totalLost}</b>");
+								botMessage.AppendLine($"— Всего проиграно очков: <b>{totalLost}</b>");
+								botMessage.AppendLine("");
+								botMessage.AppendLine("<b>Игры-раунды:</b>");
+								botMessage.AppendLine($"— Кол-во игр: <b>{countOfGames}<b>");
+								botMessage.AppendLine($"— Кол-во выигранных игр: <b>{countOfWin}</b>");
+								botMessage.AppendLine($"— Кол-во сборов: <b>{countOfCollect}</b>");
+								botMessage.AppendLine($"— Кол-во проигранных игр: <b>{countOfLose}</b>");
+								botMessage.AppendLine($"— Кол-во раундов: <b>{countOfRounds}</b>");
+								botMessage.AppendLine("");
+								botMessage.AppendLine($"<b>Позиция в рейтинге: <b>{ratingPosition}</b> место.");
 
-								await _bot.SendMessage(chat.Id, botMessage.ToString(), cancellationToken: token);
+								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 								return;
 							}
 						case "Rules" when currentState == BotState.WaitingState:
 							{
 								var chat = callbackQuery.Message!.Chat;
 
-								var botMessage = "CallbackQuery Rules : Информация о правилах.";
-								botMessage += "Правила";
-								await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
+								// var botMessage = new StringBuilder();
+								// botMessage.AppendLine("<b>Начало игры:</b>");
+								// botMessage.AppendLine("При нажатии на кнопку “Играть” Вы выбираете размер ставки и начинаете игру с Вашими настройками. Ставка должна быть меньше или равна Вашему текущему счету очков, но положительна. Если у Вас нет очков, забирайте Бонус, доступный раз в 3 часа.");
+								// botMessage.AppendLine("");
+								// botMessage.AppendLine("<b>Основная игра:</b>");
+								// botMessage.AppendLine("В процессе игры Вы выбираете свой следующий ход: “Выстрелить” или “Забрать”. Если Вы выбираете “Выстрелить”, то возможны два исхода в зависимости от наличия пули при текущем выстреле:");
+								// botMessage.AppendLine("1. Если пуля есть, то Вы проигрываете, при этом Ваш выигрыш сгорает.");
+								// botMessage.AppendLine("2. Если пули нет, то Вы играете дальше, при этом Ваш выигрыш увеличивается на X процентов от размера ставки.");
+								// botMessage.AppendLine("Далее повтор.");
+								// botMessage.AppendLine("Если Вы забираете выигрыш, то он дополнительно увеличивается в Y раз.");
+								// botMessage.AppendLine("");
+								// botMessage.AppendLine("<b>Условие полной победы:</b>");
+								// botMessage.AppendLine("Полная победа наступает лишь тогда, когда в следующих раундах остаются лишь пули. Ваш выигрыш дополнительно увеличивается на 100% Таким образом, Вы дополнительно увеличите свой выигрыш на размер ставки, но будете ли Вы рисковать?");
+								// botMessage.AppendLine("");
+								// botMessage.AppendLine("<b>Дополнительно:</b>");
+								// botMessage.AppendLine("X — множитель количества, зависит от количества пуль в настройках.");
+								// botMessage.AppendLine("Y — множитель пули, зависит от пули в настройках.");
+								// botMessage.AppendLine("Подробнее в разделе “Настройки”.");
+
+								string path = "../files/txt/Rules.txt";
+								var botMessage = await TxtToStringBuilder.FromTxtToStringBuilder(path, token);
+
+								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 								return;
 							}
 						case "History" when currentState == BotState.WaitingState:
 							{
 								var chat = callbackQuery.Message!.Chat;
 
-								var botMessage = new StringBuilder("CallbackQuery History : Информация об истории.");
+								var botMessage = new StringBuilder();
+								botMessage.AppendLine("<b>История игр:</b>");
+								botMessage.AppendLine("");
 
 								var games = await _db.Games
 									.Include(g => g.Result)
 									.Include(g => g.User)
 									.Where(g => g.User.TgId == userTg.Id && g.ResultId != null)
+									.Take(10)
 									.ToListAsync(token);
 
-								foreach (var game in games)
+								for (int i = 0; i < games.Count; i++)
 								{
-									botMessage.AppendLine($"ID:{game.IdGame} | {game.Result!.Title}");
+									var game = games[i];
+									botMessage.AppendLine($"{i}. {game.Result!.Title} | Раунды: {game.CountOfRounds} | Выигрыш: {game.Winning} | Ставка: {game.Bet}");
 								}
 
-								await _bot.SendMessage(chat.Id, botMessage.ToString(), cancellationToken: token);
+								botMessage.AppendLine("");
+
+								var diff = games.Sum(g => g.Winning) - games.Sum(g => g.Bet);
+								if (diff > 0)
+								{
+									botMessage.AppendLine($"За последние игр Вы заработали <b>{diff}</b> очков.");
+								}
+								else
+								{
+									botMessage.AppendLine($"За последние игр Вы заработали <b>{diff * -1}</b> очков.");
+								}
+
+								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 								return;
 							}
-						case "Achievements" when currentState == BotState.WaitingState:
+						case "Rating" when currentState == BotState.WaitingState:
 							{
 								var chat = callbackQuery.Message!.Chat;
 
-								var botMessage = new StringBuilder("CallbackQuery Achievements : Информация о достижениях.");
-								var userDb = await _db.Users
-									.Include(u => u.UserAchievements)
-										.ThenInclude(ua => ua.Achievement)
-									.FirstAsync(u => u.TgId == userTg.Id, token);
+								var userList = await _db.Users
+									.Include(u => u.Games)
+									.OrderByDescending(u => u.Score)
+									.Take(10)
+									.ToListAsync(token);
 
-								foreach (var ua in userDb.UserAchievements)
+								var botMessage = new StringBuilder();
+								botMessage.AppendLine("<b>Рейтинг игроков по очкам:</b>");
+								botMessage.AppendLine("");
+
+								int countOfWin, countOfCollect, countOfLose;
+								for (int i = 0; i < 10; i++)
 								{
-									var a = ua.Achievement;
-									botMessage.AppendLine($"ID:{a.IdAchievement} | {a.Title} | {a.Description} | {ua.DateReceived}");
+									var user = userList[i];
+									countOfWin = user.Games.Count(g => g.ResultId == (int)ResultOfGame.Win);
+									countOfCollect = user.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect);
+									countOfLose = user.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose);
+									botMessage.AppendLine($"{i}. {user.FirstName}: <b>{user.Score}</b> ({user.MaxScore}) очков. W/C/L: {countOfWin}/{countOfCollect}/{countOfLose}");
 								}
 
-								await _bot.SendMessage(chat.Id, botMessage.ToString(), cancellationToken: token);
+								var userDb = await _db.Users.Include(u => u.Games).FirstAsync(u => u.TgId == userTg.Id, token);
+								var ratingPosition = (await _db.Users.OrderByDescending(u => u.Score).ToListAsync()).FindIndex(u => u.TgId == userTg.Id) + 1;
+								countOfWin = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Win);
+								countOfCollect = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect);
+								countOfLose = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose);
+
+								botMessage.AppendLine("");
+								botMessage.AppendLine("<b>Ваш рейтинг:</b>");
+								botMessage.AppendLine($"{ratingPosition}. {userDb.FirstName}: <b>{userDb.Score}</b> ({userDb.MaxScore}) очков. W/C/L:");
+
+								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 								return;
 							}
 						case "Bonus" when currentState == BotState.WaitingState:
@@ -199,16 +279,17 @@ public class Host
 								string botMessage;
 								if ((DateTime.Now - mb.CollectionTime).Hours >= 3)
 								{
-									botMessage = "Поздравляю! Вы получаете 500 монет!";
 									userDb.Score += 500;
-									mb.CollectionTime = DateTime.Now;
+									var now = DateTime.Now;
+									mb.CollectionTime = now;
+									botMessage = $"Вы успешно получили бонус в размере 500 очков.\nВ следующий раз бонус доступен {now.AddHours(3)}.";
 									_db.Users.Update(userDb);
 									_db.MoneyBonuses.Update(mb);
 									await _db.SaveChangesAsync(token);
 								}
 								else
 								{
-									botMessage = "Вы не получаете бонус. Не прошло достаточно времени";
+									botMessage = $"Слишком рано для получения бонуса.\nБонус будет доступен {mb.CollectionTime.AddHours(3)}.";
 								}
 
 								await _bot.AnswerCallbackQuery(callbackQuery.Id, botMessage, showAlert: true, cancellationToken: token);
@@ -236,16 +317,15 @@ public class Host
 									.Include(g => g.BulletsInGames)
 									.FirstAsync(g => g.UserId == userDb.IdUser && g.ResultId == null, token);
 
-								short countOfRounds = game.CountOfRounds++;
-								if (game.BulletsInGames.Any(item => item.IndexOfBullet == countOfRounds))
+								if (game.BulletsInGames.Any(item => item.IndexOfBullet == game.CountOfRounds))
 								{
 									await userDb.SetStateAsync(BotState.LoseState, client, _db, update, token);
 								}
 								else
 								{
-									var botMessage = "Вы спустили курок. Выстрела не последовало.";
-									await _bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage, cancellationToken: token);
-									await userDb.SetStateAsync(BotState.ChoiceState, client, _db, update, token);
+									game.Winning = (int)Math.Round(game.Winning * MultiplierFactory.GetMultiplier(game.BulletsInGames.Count), MidpointRounding.AwayFromZero);
+									game.CountOfRounds++;
+									await userDb.SetStateAsync(BotState.WinOrChoiceState, client, _db, update, token);
 								}
 
 								_db.Games.Update(game);

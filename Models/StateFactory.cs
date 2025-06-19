@@ -13,6 +13,7 @@ public static class StateFactory
         { BotState.SettingsState, new SettingsState() },
         { BotState.SetBulletsTypeState, new SetBulletsTypeState() },
         { BotState.SetBulletsCountState, new SetBulletsCountState() },
+        { BotState.WinOrChoiceState, new WinOrChoiceState() }
     };
 
     public static State GetState(BotState botState)

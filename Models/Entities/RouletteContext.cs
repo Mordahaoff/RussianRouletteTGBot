@@ -15,8 +15,6 @@ public partial class RouletteContext : DbContext
     {
     }
 
-    public virtual DbSet<Achievement> Achievements { get; set; }
-
     public virtual DbSet<BulletsInGame> BulletsInGames { get; set; }
 
     public virtual DbSet<Game> Games { get; set; }
@@ -31,27 +29,8 @@ public partial class RouletteContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-    public virtual DbSet<UserAchievement> UserAchievements { get; set; }
-
-    //     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    // #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //         => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=roulette;Username=admin;Password=admin");
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Achievement>(entity =>
-        {
-            entity.HasKey(e => e.IdAchievement).HasName("achievements_pkey");
-
-            entity.ToTable("achievements");
-
-            entity.Property(e => e.IdAchievement).HasColumnName("id_achievement");
-            entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.Title)
-                .HasMaxLength(255)
-                .HasColumnName("title");
-        });
-
         modelBuilder.Entity<BulletsInGame>(entity =>
         {
             entity.HasKey(e => e.IdBulletInGame).HasName("bullets_in_game_pkey");
@@ -179,6 +158,9 @@ public partial class RouletteContext : DbContext
             entity.Property(e => e.BotStateId)
                 .HasDefaultValue(1)
                 .HasColumnName("bot_state_id");
+            entity.Property(e => e.FirstName)
+                .HasMaxLength(255)
+                .HasColumnName("first_name");
             entity.Property(e => e.MaxScore)
                 .HasDefaultValue(0)
                 .HasColumnName("max_score");
@@ -186,26 +168,6 @@ public partial class RouletteContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("score");
             entity.Property(e => e.TgId).HasColumnName("tg_id");
-        });
-
-        modelBuilder.Entity<UserAchievement>(entity =>
-        {
-            entity.HasKey(e => e.IdUserAchievement).HasName("user_achievements_pkey");
-
-            entity.ToTable("user_achievements");
-
-            entity.Property(e => e.IdUserAchievement).HasColumnName("id_user_achievement");
-            entity.Property(e => e.AchievementId).HasColumnName("achievement_id");
-            entity.Property(e => e.DateReceived).HasColumnName("date_received");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.Achievement).WithMany(p => p.UserAchievements)
-                .HasForeignKey(d => d.AchievementId)
-                .HasConstraintName("user_achievements_achievement_id_fkey");
-
-            entity.HasOne(d => d.User).WithMany(p => p.UserAchievements)
-                .HasForeignKey(d => d.UserId)
-                .HasConstraintName("user_achievements_user_id_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);
