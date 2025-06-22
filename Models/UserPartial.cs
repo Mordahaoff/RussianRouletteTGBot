@@ -28,4 +28,11 @@ public partial class User
             throw new ArgumentException($"Unknown BotStateId: {this.BotStateId}");
         }
     }
+
+    public void GetGameResultsInfo(out int countOfWin, out int countOfCollect, out int countOfLose)
+    {
+        countOfWin = this.Games.Count(g => g.ResultId == (int)ResultOfGame.Win);
+        countOfCollect = this.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect);
+        countOfLose = this.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose);
+    }
 }

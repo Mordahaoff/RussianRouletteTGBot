@@ -85,8 +85,9 @@ public class Host
 						// Начисление бонуса за регистрацию
 						await _db.MoneyBonuses.AddAsync(new MoneyBonuse() { UserId = userDb.IdUser, CollectionTime = DateTime.Now }, token);
 
-						string path = "files/txt/Start.txt";
-						var botMessage = await TxtToStringBuilder.FromTxtToStringBuilder(path, token);
+						var template = new Template(token);
+						await template.ReadTemplateAsync("files/txt/Start.txt");
+						var botMessage = template.GetTemplate();
 
 						await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 
@@ -163,23 +164,24 @@ public class Host
 								var countOfRounds = userDb.Games.Sum(g => g.CountOfRounds);
 								var ratingPosition = (await _db.Users.OrderByDescending(u => u.Score).ToListAsync(token)).FindIndex(u => u.TgId == userTg.Id) + 1;
 
-								var botMessage = new StringBuilder();
-								botMessage.AppendLine($"👤 Профиль <b>{name}</b> 👤");
-								botMessage.AppendLine("");
-								botMessage.AppendLine($"<b>Очки 💸</b>");
-								botMessage.AppendLine($"— Текущее кол-во очков: <b>{score}</b>");
-								botMessage.AppendLine($"— Максимальное кол-во очков: <b>{maxScore}</b>");
-								botMessage.AppendLine($"— Всего выиграно очков: <b>{totalLost}</b>");
-								botMessage.AppendLine($"— Всего проиграно очков: <b>{totalLost}</b>");
-								botMessage.AppendLine("");
-								botMessage.AppendLine("<b>Игры-раунды 🎮</b>");
-								botMessage.AppendLine($"— Кол-во игр: <b>{countOfGames}</b>");
-								botMessage.AppendLine($"— Кол-во выигранных игр: <b>{countOfWin}</b>");
-								botMessage.AppendLine($"— Кол-во сборов: <b>{countOfCollect}</b>");
-								botMessage.AppendLine($"— Кол-во проигранных игр: <b>{countOfLose}</b>");
-								botMessage.AppendLine($"— Кол-во раундов: <b>{countOfRounds}</b>");
-								botMessage.AppendLine("");
-								botMessage.AppendLine($"🏆 <b>Позиция</b> в рейтинге: <b>{ratingPosition}</b> место 🏆");
+								var dict = new Dictionary<string, string> {
+									{ "{name}", name },
+									{ "{score}", score.ToString() },
+									{ "{maxScore}", maxScore.ToString() },
+									{ "{totalWinning}", totalWinning.ToString() },
+									{ "{totalLost}", totalLost.ToString() },
+									{ "{countOfGames}", countOfGames.ToString() },
+									{ "{countOfWin}", countOfWin.ToString() },
+									{ "{countOfCollect}", countOfCollect.ToString() },
+									{ "{countOfLose}", countOfLose.ToString() },
+									{ "{countOfRounds}", countOfRounds.ToString() },
+									{ "{ratingPosition}", ratingPosition.ToString() }
+								};
+
+								var template = new Template(token);
+								await template.ReadTemplateAsync("files/txt/Profile.txt");
+								template.Format(dict);
+								var botMessage = template.GetTemplate();
 
 								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 								return;
@@ -188,8 +190,9 @@ public class Host
 							{
 								var chat = callbackQuery.Message!.Chat;
 
-								string path = "files/txt/Rules.txt";
-								var botMessage = await TxtToStringBuilder.FromTxtToStringBuilder(path, token);
+								var template = new Template(token);
+								await template.ReadTemplateAsync("files/txt/Rules.txt");
+								var botMessage = template.GetTemplate();
 
 								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 								return;
@@ -252,18 +255,14 @@ public class Host
 								{
 									// Повторение кода
 									var user = userList[i];
-									countOfWin = user.Games.Count(g => g.ResultId == (int)ResultOfGame.Win);
-									countOfCollect = user.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect);
-									countOfLose = user.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose);
+									user.GetGameResultsInfo(out countOfWin, out countOfCollect, out countOfLose);
 									botMessage.AppendLine($"{i + 1}. {user.FirstName}: <b>{user.Score}</b> ({user.MaxScore}) очков. <i>W/C/L: {countOfWin}/{countOfCollect}/{countOfLose}.</i>");
 								}
 
 								// Повторение кода
 								var userDb = await _db.Users.Include(u => u.Games).FirstAsync(u => u.TgId == userTg.Id, token);
-								var ratingPosition = (await _db.Users.OrderByDescending(u => u.Score).ToListAsync()).FindIndex(u => u.TgId == userTg.Id) + 1;
-								countOfWin = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Win);
-								countOfCollect = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect);
-								countOfLose = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose);
+								userDb.GetGameResultsInfo(out countOfWin, out countOfCollect, out countOfLose);
+								var ratingPosition = (await _db.Users.OrderByDescending(u => u.Score).ToListAsync(token)).FindIndex(u => u.TgId == userTg.Id) + 1;
 
 								botMessage.AppendLine("");
 								botMessage.AppendLine("👤 <b>Ваш рейтинг</b> 👤");
