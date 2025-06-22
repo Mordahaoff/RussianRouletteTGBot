@@ -2,8 +2,6 @@ namespace RussianRouletteTGBot.Models;
 
 public static class MultiplierFactory
 {
-    public const double DEFAULT_MULTIPLIER = 1.3;
-
     private static readonly Dictionary<int, double> _multiplierDict = new()
     {
         { 1, 1.3 },

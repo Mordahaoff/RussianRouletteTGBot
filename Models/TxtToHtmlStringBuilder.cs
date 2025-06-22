@@ -6,7 +6,7 @@ public static class TxtToStringBuilder
 {
     public static async Task<StringBuilder> FromTxtToStringBuilder(string path, CancellationToken token)
     {
-        var lines = await File.ReadAllLinesAsync("files/txt/Start.txt", Encoding.UTF8, token);
+        var lines = await File.ReadAllLinesAsync(path, Encoding.UTF8, token);
         var stringBuilder = new StringBuilder();
 
         foreach (var line in lines)
