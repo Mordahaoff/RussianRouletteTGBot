@@ -21,11 +21,27 @@ public class WaitingState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        long chatId = update.CallbackQuery != null
-            ? update.CallbackQuery.Message!.Chat.Id
-            : update.Message != null
-                ? update.Message.Chat.Id
-                : throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
+        // long chatId = update.CallbackQuery != null
+        //     ? update.CallbackQuery.Message!.Chat.Id
+        //     : update.Message != null
+        //         ? update.Message.Chat.Id
+        //         : throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
+        long userId, chatId;
+        if (update.CallbackQuery != null)
+        {
+            userId = update.CallbackQuery.From.Id;
+            chatId = update.CallbackQuery.Message!.Chat.Id;
+        }
+        else if (update.Message != null)
+        {
+            userId = update.Message.From!.Id;
+            chatId = update.Message.Chat.Id;
+        }
+        else
+        {
+            throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
+        }
+
         var botMessage = "Перечень возможных команд представлен ниже.";
         var inlineKeyboard = new InlineKeyboardMarkup(
             [
@@ -47,6 +63,7 @@ public class WaitingState : State
                     InlineKeyboardButton.WithCallbackData("Играть 🎮", "Play"),
                 ],
             ]);
+        var im = await db.InfoMessages.FirstAsync(im => im.UserId == userId, token);
         await bot.SendMessage(chatId, botMessage, replyMarkup: inlineKeyboard, cancellationToken: token);
         return;
     }
@@ -205,6 +222,7 @@ public class CollectState : State
             game.Winning = (int)Math.Round(game.Winning * game.Settings.TypeOfBullet.Multiplier, MidpointRounding.AwayFromZero);
         }
         userDb.Score += game.Winning;
+        if (userDb.Score > userDb.MaxScore) userDb.MaxScore = userDb.Score;
 
         db.Users.Update(userDb);
         db.Games.Update(game);
@@ -259,6 +277,7 @@ public class WinState : State
 
         game.Winning = (int)Math.Round(game.Winning * game.Settings.TypeOfBullet.Multiplier, MidpointRounding.AwayFromZero) + game.Bet;
         userDb.Score += game.Winning;
+        if (userDb.Score > userDb.MaxScore) userDb.MaxScore = userDb.Score;
 
         db.Users.Update(userDb);
         db.Games.Update(game);

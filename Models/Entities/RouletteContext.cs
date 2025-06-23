@@ -19,6 +19,8 @@ public partial class RouletteContext : DbContext
 
     public virtual DbSet<Game> Games { get; set; }
 
+    public virtual DbSet<InfoMessage> InfoMessages { get; set; }
+
     public virtual DbSet<MoneyBonuse> MoneyBonuses { get; set; }
 
     public virtual DbSet<ResultsOfGame> ResultsOfGames { get; set; }
@@ -76,6 +78,22 @@ public partial class RouletteContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.Games)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("games_user_id_fkey");
+        });
+
+        modelBuilder.Entity<InfoMessage>(entity =>
+        {
+            entity.HasKey(e => e.IdInfoMessage).HasName("info_messages_pkey");
+
+            entity.ToTable("info_messages");
+
+            entity.Property(e => e.IdInfoMessage).HasColumnName("id_info_message");
+            entity.Property(e => e.IdChoice).HasColumnName("id_choice");
+            entity.Property(e => e.IdWaiting).HasColumnName("id_waiting");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.InfoMessages)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("info_messages_user_id_fkey");
         });
 
         modelBuilder.Entity<MoneyBonuse>(entity =>

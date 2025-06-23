@@ -385,9 +385,9 @@ public class Host
 							}
 						default:
 							{
-								var chat = callbackQuery.Message!.Chat;
+								// var chat = callbackQuery.Message!.Chat;
 								var botMessage = "❌ Недопустимая операция. ❌";
-								await _bot.SendMessage(chat.Id, botMessage, cancellationToken: token);
+								await _bot.AnswerCallbackQuery(callbackQuery.Id, botMessage, showAlert: true, cancellationToken: token);
 								return;
 							}
 					}
