@@ -383,6 +383,31 @@ public class Host
 								await HandleCallbackChangeCountAsync(_bot, _db, update, token);
 								return;
 							}
+						// Для теста
+						case "CheckBullets" when currentState == BotState.ChoiceState:
+							{
+								var game = await _db.Games
+									.Include(g => g.User)
+									.Include(g => g.BulletsInGames)
+									.FirstAsync(g => g.User.TgId == userTg.Id && g.ResultId == null, token);
+
+								var botMessage = new StringBuilder("Пули ждут Вас на раундах: ");
+								var bullets = game.BulletsInGames.OrderBy(b => b.IndexOfBullet);
+								foreach (var bullet in bullets)
+								{
+									botMessage.Append($"{bullet.IndexOfBullet}");
+									if (bullet.IndexOfBullet != bullets.Last().IndexOfBullet)
+									{
+										botMessage.Append(", ");
+									}
+									else
+									{
+										botMessage.Append('.');
+									}
+								}
+								await _bot.AnswerCallbackQuery(callbackQuery.Id, botMessage.ToString(), showAlert: true, cancellationToken: token);
+								return;
+							}
 						default:
 							{
 								var chat = callbackQuery.Message!.Chat;
