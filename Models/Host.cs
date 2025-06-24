@@ -85,6 +85,9 @@ public class Host
 						// Начисление бонуса за регистрацию
 						await _db.MoneyBonuses.AddAsync(new MoneyBonuse() { UserId = userDb.IdUser, CollectionTime = DateTime.Now }, token);
 
+						// Добавление записи с информативными сообщениями для этого юзера
+						await _db.InfoMessages.AddAsync(new InfoMessage() { UserId = userDb.IdUser, }, token);
+
 						var template = new Template(token);
 						await template.ReadTemplateAsync("files/txt/Start.txt");
 						var botMessage = template.GetTemplate();
@@ -101,37 +104,10 @@ public class Host
 					if (await _db.Users.AnyAsync(u => u.TgId == userTg.Id, token))
 					{
 						var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
-
-						if (userDb.BotStateId == (int)BotState.WaitingState && msg.Text == "/menu")
-						{
-							var botMessage = "Перечень возможных команд представлен ниже.";
-							var inlineKeyboard = new InlineKeyboardMarkup(
-								[
-									// first row
-									[
-										InlineKeyboardButton.WithCallbackData("Профиль 👤", "Profile"),
-										InlineKeyboardButton.WithCallbackData("Рейтинг 🏆", "Rating"),
-										InlineKeyboardButton.WithCallbackData("История 👾", "History"),
-									],
-									// second row
-									[
-										InlineKeyboardButton.WithCallbackData("Правила 📄", "Rules"),
-										InlineKeyboardButton.WithCallbackData("Настройки ⚙️", "Settings"),
-										InlineKeyboardButton.WithCallbackData("Бонус 🎁", "Bonus"),
-
-									],
-									// third row
-									[
-										InlineKeyboardButton.WithCallbackData("Играть 🎮", "Play"),
-									],
-								]);
-							await _bot.SendMessage(chat.Id, botMessage, replyMarkup: inlineKeyboard, cancellationToken: token);
-							return;
-						}
-
 						await userDb.DoStateAsync(client, _db, update, token);
 						return;
 					}
+
 					return;
 				}
 			case UpdateType.CallbackQuery:
@@ -139,8 +115,9 @@ public class Host
 					_onCallbackQuery?.Invoke(client, update);
 					var callbackQuery = update.CallbackQuery!;
 					var userTg = callbackQuery.From!;
+					var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 
-					var currentState = (BotState)(await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token)).BotStateId;
+					var currentState = (BotState)userDb.BotStateId;
 
 					switch (callbackQuery.Data)
 					{
@@ -148,9 +125,10 @@ public class Host
 							{
 								var chat = callbackQuery.Message!.Chat;
 
-								var userDb = await _db.Users
-									.Include(u => u.Games)
-									.FirstAsync(u => u.TgId == userTg.Id, token);
+								var im = await _db.InfoMessages
+									.Include(im => im.User)
+										.ThenInclude(u => u.Games)
+									.FirstAsync(im => im.UserId == userDb.IdUser, token);
 
 								var name = userTg.FirstName + " " + userTg.LastName;
 								var score = userDb.Score;
@@ -183,7 +161,7 @@ public class Host
 								template.Format(dict);
 								var botMessage = template.GetTemplate();
 
-								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
+								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Rules" when currentState == BotState.WaitingState:
@@ -194,7 +172,8 @@ public class Host
 								await template.ReadTemplateAsync("files/txt/Rules.txt");
 								var botMessage = template.GetTemplate();
 
-								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
+								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
+								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "History" when currentState == BotState.WaitingState:
@@ -207,8 +186,7 @@ public class Host
 
 								var games = await _db.Games
 									.Include(g => g.Result)
-									.Include(g => g.User)
-									.Where(g => g.User.TgId == userTg.Id && g.ResultId != null)
+									.Where(g => g.UserId == userDb.IdUser && g.ResultId != null)
 									.Take(10)
 									.ToListAsync(token);
 
@@ -233,7 +211,8 @@ public class Host
 									< 0 => $"😟 За последние 10 игр Вы проиграли <b>{diff * -1}</b> очков 😟"
 								});
 
-								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
+								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
+								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Rating" when currentState == BotState.WaitingState:
@@ -253,68 +232,69 @@ public class Host
 								int countOfWin, countOfCollect, countOfLose;
 								for (int i = 0; i < userList.Count; i++)
 								{
-									// Повторение кода
 									var user = userList[i];
 									user.GetGameResultsInfo(out countOfWin, out countOfCollect, out countOfLose);
 									botMessage.AppendLine($"{i + 1}. {user.FirstName}: <b>{user.Score}</b> ({user.MaxScore}) очков. <i>W/C/L: {countOfWin}/{countOfCollect}/{countOfLose}.</i>");
 								}
 
-								// Повторение кода
-								var userDb = await _db.Users.Include(u => u.Games).FirstAsync(u => u.TgId == userTg.Id, token);
+								userDb = await _db.Users.Include(u => u.Games).FirstAsync(u => u.IdUser == userDb.IdUser, token);
 								userDb.GetGameResultsInfo(out countOfWin, out countOfCollect, out countOfLose);
-								var ratingPosition = (await _db.Users.OrderByDescending(u => u.Score).ToListAsync(token)).FindIndex(u => u.TgId == userTg.Id) + 1;
+								var ratingPosition = (await _db.Users.OrderByDescending(u => u.Score).ToListAsync(token)).FindIndex(u => u.IdUser == userDb.IdUser) + 1;
 
 								botMessage.AppendLine("");
 								botMessage.AppendLine("👤 <b>Ваш рейтинг</b> 👤");
 								botMessage.AppendLine($"{ratingPosition}. {userDb.FirstName}: <b>{userDb.Score}</b> ({userDb.MaxScore}) очков. <i>W/C/L: {countOfWin}/{countOfCollect}/{countOfLose}.</i>");
 
-								await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
+								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
+								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Bonus" when currentState == BotState.WaitingState:
 							{
 								var chat = callbackQuery.Message!.Chat;
+								var mb = await _db.MoneyBonuses.Include(mb => mb.User).FirstAsync(mb => mb.User.TgId == userTg.Id, token);
 
-								var userDb = await _db.Users.Include(u => u.MoneyBonuses).FirstAsync(u => u.TgId == userTg.Id, token);
-								var mb = userDb.MoneyBonuses.OrderBy(mb => mb.IdMoneyBonus).Last();
-
-								string botMessage;
+								var botMessage = new StringBuilder();
 								if ((DateTime.Now - mb.CollectionTime).Hours >= 3)
 								{
-									userDb.Score += 500;
+									mb.User.Score += 500;
 									var now = DateTime.Now;
 									mb.CollectionTime = now;
-									botMessage = $"Вы успешно получили бонус в размере 500 очков.\nВ следующий раз бонус доступен {now.AddHours(3)}.";
-									_db.Users.Update(userDb);
+									botMessage.AppendLine("🎁✅ Вы успешно получили бонус в размере 500 очков. ✅🎁");
+									botMessage.AppendLine($"⏰ В следующий раз бонус доступен {now.AddHours(3)}. ⏰");
+									_db.Users.Update(mb.User);
 									_db.MoneyBonuses.Update(mb);
 									await _db.SaveChangesAsync(token);
 								}
 								else
 								{
-									botMessage = $"Слишком рано для получения бонуса.\nБонус будет доступен {mb.CollectionTime.AddHours(3)}.";
+									botMessage.AppendLine("🎁❌ Слишком рано для получения бонуса. ❌🎁");
+									botMessage.AppendLine($"⏰ Бонус будет доступен {mb.CollectionTime.AddHours(3)}. ⏰");
 								}
 
-								await _bot.AnswerCallbackQuery(callbackQuery.Id, botMessage, showAlert: true, cancellationToken: token);
+								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == mb.UserId, token);
+								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Settings" when currentState == BotState.WaitingState:
 							{
-								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id);
 								await userDb.SetStateAsync(BotState.SettingsState, client, _db, update, token);
 								await _db.SaveChangesAsync(token);
 								return;
 							}
 						case "Play" when currentState == BotState.WaitingState || currentState == BotState.CollectState || currentState == BotState.WinState || currentState == BotState.LoseState:
 							{
-								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 								if (!_db.Games.Any(g => g.UserId == userDb.IdUser && g.ResultId == null))
+								{
 									await userDb.SetStateAsync(BotState.BetState, client, _db, update, token);
-								await _db.SaveChangesAsync(token);
+									await _db.SaveChangesAsync(token);
+								}
 								return;
 							}
 						case "Shot" when currentState == BotState.ChoiceState:
 							{
-								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
+								var chat = callbackQuery.Message!.Chat;
+
 								var game = await _db.Games
 									.Include(g => g.BulletsInGames)
 									.FirstAsync(g => g.UserId == userDb.IdUser && g.ResultId == null, token);
@@ -322,14 +302,14 @@ public class Host
 								if (game.BulletsInGames.Any(item => item.IndexOfBullet == game.CountOfRounds))
 								{
 									var botMessage = "Вы спустили курок... <b>Произошел выстрел... 💀💥🔫</b>";
-									await _bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
+									await _bot.SendMessage(chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
 									await userDb.SetStateAsync(BotState.LoseState, client, _db, update, token);
 								}
 								else
 								{
 									game.Winning = (int)Math.Round(game.Winning * MultiplierFactory.GetMultiplier(game.BulletsInGames.Count), MidpointRounding.AwayFromZero);
 									var botMessage = "Вы спустили курок... <b>Выстрела не последовало... 😮💨🔫</b>";
-									await _bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
+									await _bot.SendMessage(chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
 									await userDb.SetStateAsync(BotState.WinOrChoiceState, client, _db, update, token);
 								}
 
@@ -338,28 +318,24 @@ public class Host
 							}
 						case "Collect" when currentState == BotState.ChoiceState:
 							{
-								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 								await userDb.SetStateAsync(BotState.CollectState, client, _db, update, token);
 								await _db.SaveChangesAsync(token);
 								return;
 							}
 						case "ToWaitingState" when currentState != BotState.WaitingState && currentState != BotState.ChoiceState:
 							{
-								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id);
 								await userDb.SetStateAsync(BotState.WaitingState, client, _db, update, token);
 								await _db.SaveChangesAsync(token);
 								return;
 							}
 						case "SetBulletsType" when currentState == BotState.SettingsState:
 							{
-								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 								await userDb.SetStateAsync(BotState.SetBulletsTypeState, client, _db, update, token);
 								await _db.SaveChangesAsync(token);
 								return;
 							}
 						case "SetBulletsCount" when currentState == BotState.SettingsState:
 							{
-								var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 								await userDb.SetStateAsync(BotState.SetBulletsCountState, client, _db, update, token);
 								await _db.SaveChangesAsync(token);
 								return;
@@ -385,7 +361,6 @@ public class Host
 							}
 						default:
 							{
-								// var chat = callbackQuery.Message!.Chat;
 								var botMessage = "❌ Недопустимая операция. ❌";
 								await _bot.AnswerCallbackQuery(callbackQuery.Id, botMessage, showAlert: true, cancellationToken: token);
 								return;

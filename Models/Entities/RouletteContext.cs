@@ -86,13 +86,15 @@ public partial class RouletteContext : DbContext
 
             entity.ToTable("info_messages");
 
+            entity.HasIndex(e => e.UserId, "info_messages_user_id_key").IsUnique();
+
             entity.Property(e => e.IdInfoMessage).HasColumnName("id_info_message");
             entity.Property(e => e.IdChoice).HasColumnName("id_choice");
             entity.Property(e => e.IdWaiting).HasColumnName("id_waiting");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.User).WithMany(p => p.InfoMessages)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.InfoMessage)
+                .HasForeignKey<InfoMessage>(d => d.UserId)
                 .HasConstraintName("info_messages_user_id_fkey");
         });
 
@@ -102,6 +104,8 @@ public partial class RouletteContext : DbContext
 
             entity.ToTable("money_bonuses");
 
+            entity.HasIndex(e => e.UserId, "money_bonuses_user_id_key").IsUnique();
+
             entity.Property(e => e.IdMoneyBonus).HasColumnName("id_money_bonus");
             entity.Property(e => e.CollectionTime)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -109,8 +113,8 @@ public partial class RouletteContext : DbContext
                 .HasColumnName("collection_time");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.User).WithMany(p => p.MoneyBonuses)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.MoneyBonuse)
+                .HasForeignKey<MoneyBonuse>(d => d.UserId)
                 .HasConstraintName("money_bonuses_user_id_fkey");
         });
 
@@ -132,6 +136,8 @@ public partial class RouletteContext : DbContext
 
             entity.ToTable("settings");
 
+            entity.HasIndex(e => e.UserId, "settings_user_id_key").IsUnique();
+
             entity.Property(e => e.IdSetting).HasColumnName("id_setting");
             entity.Property(e => e.CountOfBullets)
                 .HasDefaultValue((short)1)
@@ -145,8 +151,8 @@ public partial class RouletteContext : DbContext
                 .HasForeignKey(d => d.TypeOfBulletId)
                 .HasConstraintName("settings_type_of_bullet_id_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Settings)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.Setting)
+                .HasForeignKey<Setting>(d => d.UserId)
                 .HasConstraintName("settings_user_id_fkey");
         });
 
@@ -171,6 +177,8 @@ public partial class RouletteContext : DbContext
             entity.HasKey(e => e.IdUser).HasName("users_pkey");
 
             entity.ToTable("users");
+
+            entity.HasIndex(e => e.TgId, "users_tg_id_key").IsUnique();
 
             entity.Property(e => e.IdUser).HasColumnName("id_user");
             entity.Property(e => e.BotStateId)

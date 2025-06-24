@@ -12,8 +12,6 @@ public partial class User
 
         var stateInstance = StateFactory.GetState(newState);
         await stateInstance.EnterAsync(bot, db, update, token);
-
-        // await db.SaveChangesAsync(token);
     }
 
     public async Task DoStateAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)

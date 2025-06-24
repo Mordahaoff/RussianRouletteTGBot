@@ -21,20 +21,15 @@ public class WaitingState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        // long chatId = update.CallbackQuery != null
-        //     ? update.CallbackQuery.Message!.Chat.Id
-        //     : update.Message != null
-        //         ? update.Message.Chat.Id
-        //         : throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
-        long userId, chatId;
+        long userTgId, chatId;
         if (update.CallbackQuery != null)
         {
-            userId = update.CallbackQuery.From.Id;
+            userTgId = update.CallbackQuery.From.Id;
             chatId = update.CallbackQuery.Message!.Chat.Id;
         }
         else if (update.Message != null)
         {
-            userId = update.Message.From!.Id;
+            userTgId = update.Message.From!.Id;
             chatId = update.Message.Chat.Id;
         }
         else
@@ -63,9 +58,10 @@ public class WaitingState : State
                     InlineKeyboardButton.WithCallbackData("Играть 🎮", "Play"),
                 ],
             ]);
-        var im = await db.InfoMessages.FirstAsync(im => im.UserId == userId, token);
-        await bot.SendMessage(chatId, botMessage, replyMarkup: inlineKeyboard, cancellationToken: token);
-        return;
+
+        var im = await db.InfoMessages.Include(im => im.User).FirstAsync(im => im.User.TgId == userTgId, token);
+        im.IdWaiting = (await bot.SendMessage(chatId, botMessage, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
+        db.InfoMessages.Update(im);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -80,8 +76,12 @@ public class BetState : State
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
         var callbackQuery = update.CallbackQuery!;
-        var userDb = await db.Users.Include(u => u.Settings).ThenInclude(u => u.TypeOfBullet).FirstAsync(u => u.TgId == callbackQuery.From!.Id, token);
-        var settings = userDb.Settings.OrderBy(s => s.IdSetting).First();
+
+        var settings = await db.Settings
+            .Include(s => s.TypeOfBullet)
+            .Include(s => s.User)
+            .FirstAsync(s => s.User.TgId == callbackQuery.From.Id, token);
+        var userDb = settings.User;
 
         var dict = new Dictionary<string, string> {
             { "{score}", userDb.Score.ToString() },
@@ -97,22 +97,22 @@ public class BetState : State
         var botMessage = template.GetTemplate();
 
         var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState")]]);
+
         await bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
         var msg = update.Message!;
-        var userTg = msg.From!;
-        var chat = msg.Chat!;
 
-        var userDb = await db.Users
-            .Include(u => u.Settings)
-                .ThenInclude(s => s.TypeOfBullet)
-            .FirstAsync(u => u.TgId == userTg.Id, token);
+        var settings = await db.Settings
+            .Include(s => s.TypeOfBullet)
+            .Include(s => s.User)
+            .FirstAsync(s => s.User.TgId == msg.From!.Id, token);
+        var userDb = settings.User;
 
         var betValue = int.TryParse(msg.Text, out int betInt);
-        var bulletsType = userDb.Settings.OrderBy(s => s.IdSetting).First().TypeOfBullet;
+        var bulletsType = settings.TypeOfBullet;
         var diff = userDb.Score - betInt;
         string botMessage;
 
@@ -121,23 +121,23 @@ public class BetState : State
         {
             botMessage = "❌ Пожалуйста, введите <b>корректное</b> значение ставки. ❌";
             var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState")]]);
-            await bot.SendMessage(chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+            await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
             return;
         }
 
-        // Не хватает денег на оплату пули
+        // Не хватает денег на оплату пули --> Некорректный ввод
         if (diff < bulletsType.Price)
         {
             botMessage = "❌ <b>Упс... Не хватает денег на оплату пули.</b> ❌";
             var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState")]]);
-            await bot.SendMessage(chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+            await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
             return;
         }
 
         botMessage = $"✅ Ставка в <b>{betInt}</b> монет принята. Начнем игру! ✅";
         userDb.Score -= betInt;
         userDb.Score -= bulletsType.Price;
-        var settings = await db.Settings.FirstAsync(s => s.UserId == userDb.IdUser, token);
+
         var game = new Game()
         {
             UserId = userDb.IdUser,
@@ -161,7 +161,7 @@ public class BetState : State
             await db.BulletsInGames.AddAsync(bulletInGame, token);
         }
 
-        await bot.SendMessage(chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
+        await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
         await userDb.SetStateAsync(BotState.ChoiceState, bot, db, update, token);
         await db.SaveChangesAsync(token);
     }
@@ -171,8 +171,21 @@ public class ChoiceState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var userTgId = update.CallbackQuery != null ? update.CallbackQuery.From.Id : update.Message != null ? update.Message.From!.Id : throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
-        var chatId = update.CallbackQuery != null ? update.CallbackQuery.Message!.Chat.Id : update.Message != null ? update.Message.Chat.Id : throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
+        long userTgId, chatId;
+        if (update.CallbackQuery != null)
+        {
+            userTgId = update.CallbackQuery.From.Id;
+            chatId = update.CallbackQuery.Message!.Chat.Id;
+        }
+        else if (update.Message != null)
+        {
+            userTgId = update.Message.From!.Id;
+            chatId = update.Message.Chat.Id;
+        }
+        else
+        {
+            throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
+        }
 
         var game = await db.Games
             .Include(g => g.BulletsInGames)
@@ -185,7 +198,6 @@ public class ChoiceState : State
         botMessage.AppendLine("");
         botMessage.AppendLine("<b>Что будете делать дальше?</b>");
 
-
         var inlineKeyboard = new InlineKeyboardMarkup(
             [
                 [
@@ -195,7 +207,17 @@ public class ChoiceState : State
                     InlineKeyboardButton.WithCallbackData("Забрать", "Collect"),
                 ]
             ]);
-        await bot.SendMessage(chatId, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+
+        var im = await db.InfoMessages.FirstAsync(im => im.UserId == game.UserId, token);
+        if (game.CountOfRounds == 1)
+        {
+            im.IdChoice = (await bot.SendMessage(chatId, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
+        }
+        else
+        {
+            await bot.EditMessageCaption(chatId, im.IdChoice, ParseMode.Html)
+        }
+        db.InfoMessages.Update(im);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -244,7 +266,6 @@ public class CollectState : State
         botMessage.AppendLine();
         botMessage.AppendLine("<b>Что будете делать дальше?</b>");
 
-        // var botMessage = $"Collect State : Поздравляю! Вы забрали деньги!\nВаш выигрыш составляет {game.Winning} монет.";
         var inlineKeyboard = new InlineKeyboardMarkup(
             [
                 [

@@ -19,9 +19,9 @@ public partial class User
 
     public virtual ICollection<Game> Games { get; set; } = new List<Game>();
 
-    public virtual ICollection<InfoMessage> InfoMessages { get; set; } = new List<InfoMessage>();
+    public virtual InfoMessage? InfoMessage { get; set; }
 
-    public virtual ICollection<MoneyBonuse> MoneyBonuses { get; set; } = new List<MoneyBonuse>();
+    public virtual MoneyBonuse? MoneyBonuse { get; set; }
 
-    public virtual ICollection<Setting> Settings { get; set; } = new List<Setting>();
+    public virtual Setting? Setting { get; set; }
 }
