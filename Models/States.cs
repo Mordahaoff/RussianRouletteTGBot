@@ -96,8 +96,7 @@ public class BetState : State
         template.Format(dict);
         var botMessage = template.GetTemplate();
 
-        var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState")]]);
-
+        var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")]]);
         await bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
@@ -120,7 +119,7 @@ public class BetState : State
         if (betInt < 100 || betInt > userDb.Score)
         {
             botMessage = "❌ Пожалуйста, введите <b>корректное</b> значение ставки. ❌";
-            var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState")]]);
+            var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")]]);
             await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
             return;
         }
@@ -129,7 +128,7 @@ public class BetState : State
         if (diff < bulletsType.Price)
         {
             botMessage = "❌ <b>Упс... Не хватает денег на оплату пули.</b> ❌";
-            var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState")]]);
+            var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")]]);
             await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
             return;
         }
@@ -201,10 +200,14 @@ public class ChoiceState : State
         var inlineKeyboard = new InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton.WithCallbackData("Выстрелить", "Shot"),
+                    InlineKeyboardButton.WithCallbackData("[Выстрелить]", "Shot"),
                 ],
                 [
-                    InlineKeyboardButton.WithCallbackData("Забрать", "Collect"),
+                    InlineKeyboardButton.WithCallbackData("[Забрать]", "Collect"),
+                ],
+                // Для теста
+                [
+                    InlineKeyboardButton.WithCallbackData("[ТЕСТ | Подсмотреть]", "CheckBullets")
                 ]
             ]);
 
@@ -215,7 +218,7 @@ public class ChoiceState : State
         }
         else
         {
-            await bot.EditMessageCaption(chatId, im.IdChoice, ParseMode.Html)
+            await bot.EditMessageCaption(chatId, (int)im.IdChoice!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         }
         db.InfoMessages.Update(im);
     }
@@ -272,7 +275,7 @@ public class CollectState : State
                     InlineKeyboardButton.WithCallbackData("Играть дальше", "Play"),
                 ],
                 [
-                    InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState"),
+                    InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState"),
                 ]
             ]);
         await bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
@@ -318,7 +321,7 @@ public class WinState : State
                     InlineKeyboardButton.WithCallbackData("Играть дальше", "Play"),
                 ],
                 [
-                    InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState"),
+                    InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState"),
                 ]
             ]);
         await bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
@@ -371,7 +374,7 @@ public class LoseState : State
                     InlineKeyboardButton.WithCallbackData("Играть дальше", "Play"),
                 ],
                 [
-                    InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState"),
+                    InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState"),
                 ]
             ]);
         await bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
@@ -413,7 +416,7 @@ public class SettingsState : State
                 InlineKeyboardButton.WithCallbackData("Кол-во пуль", "SetBulletsCount"),
             ],
             [
-                InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState"),
+                InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState"),
             ]
         ]);
 
@@ -461,7 +464,7 @@ public class SetBulletsTypeState : State
                 InlineKeyboardButton.WithCallbackData("Платиновая", "SetBulletsTypeTo_Platinum"),
             ],
             [
-                InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState")
+                InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")
             ]
         ]);
 
@@ -506,7 +509,7 @@ public class SetBulletsCountState : State
                 InlineKeyboardButton.WithCallbackData("6️⃣", "SetBulletsCountTo_6"),
             ],
             [
-                InlineKeyboardButton.WithCallbackData("Вернуться", "ToWaitingState")
+                InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")
             ]
         ]);
 
