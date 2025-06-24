@@ -81,12 +81,11 @@ public class Host
 
 						// Добавление настроек по умолчанию
 						await _db.Settings.AddAsync(new Setting() { UserId = userDb.IdUser }, token);
-
 						// Начисление бонуса за регистрацию
 						await _db.MoneyBonuses.AddAsync(new MoneyBonuse() { UserId = userDb.IdUser, CollectionTime = DateTime.Now }, token);
-
 						// Добавление записи с информативными сообщениями для этого юзера
 						await _db.InfoMessages.AddAsync(new InfoMessage() { UserId = userDb.IdUser, }, token);
+						await _db.SaveChangesAsync(token);
 
 						var template = new Template(token);
 						await template.ReadTemplateAsync("files/txt/Start.txt");
@@ -96,7 +95,6 @@ public class Host
 
 						//  Изменение состояние юзера в БД
 						await userDb.SetStateAsync(BotState.WaitingState, client, _db, update, token);
-
 						await _db.SaveChangesAsync(token);
 						return;
 					}
@@ -161,7 +159,7 @@ public class Host
 								template.Format(dict);
 								var botMessage = template.GetTemplate();
 
-								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Rules" when currentState == BotState.WaitingState:
@@ -173,7 +171,7 @@ public class Host
 								var botMessage = template.GetTemplate();
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "History" when currentState == BotState.WaitingState:
@@ -212,7 +210,7 @@ public class Host
 								});
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Rating" when currentState == BotState.WaitingState:
@@ -246,7 +244,7 @@ public class Host
 								botMessage.AppendLine($"{ratingPosition}. {userDb.FirstName}: <b>{userDb.Score}</b> ({userDb.MaxScore}) очков. <i>W/C/L: {countOfWin}/{countOfCollect}/{countOfLose}.</i>");
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Bonus" when currentState == BotState.WaitingState:
@@ -273,7 +271,7 @@ public class Host
 								}
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == mb.UserId, token);
-								await _bot.EditMessageCaption(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Settings" when currentState == BotState.WaitingState:
@@ -301,15 +299,11 @@ public class Host
 
 								if (game.BulletsInGames.Any(item => item.IndexOfBullet == game.CountOfRounds))
 								{
-									var botMessage = "Вы спустили курок... <b>Произошел выстрел... 💀💥🔫</b>";
-									await _bot.SendMessage(chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
 									await userDb.SetStateAsync(BotState.LoseState, client, _db, update, token);
 								}
 								else
 								{
 									game.Winning = (int)Math.Round(game.Winning * MultiplierFactory.GetMultiplier(game.BulletsInGames.Count), MidpointRounding.AwayFromZero);
-									var botMessage = "Вы спустили курок... <b>Выстрела не последовало... 😮💨🔫</b>";
-									await _bot.SendMessage(chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
 									await userDb.SetStateAsync(BotState.WinOrChoiceState, client, _db, update, token);
 								}
 
@@ -425,21 +419,17 @@ public class Host
 
 		if (typeOfBullet.Price > userDb.Score)
 		{
-			botMessage = "<b>Не хватает монет. Возвращение в меню настроек. ❌💸⚙️</b>";
-			await userDb.SetStateAsync(BotState.SettingsState, bot, db, update, token);
-			await db.SaveChangesAsync(token);
+			botMessage = "Ошибка: не хватает монет. ❌💸⚙️";
 		}
 		else
 		{
-			botMessage = "<b>Настройки успешно изменены. ✅⚙️</b>";
+			botMessage = "Настройки успешно изменены. ✅⚙️";
 			settings.TypeOfBulletId = typeOfBulletId;
 			db.Settings.Update(settings);
+			await db.SaveChangesAsync(token);
 		}
 
-		await bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
-
-		await userDb.SetStateAsync(BotState.WaitingState, bot, db, update, token);
-		await db.SaveChangesAsync(token);
+		await bot.AnswerCallbackQuery(callbackQuery.Id, botMessage, showAlert: true, cancellationToken: token);
 	}
 
 	private static async Task HandleCallbackChangeCountAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -450,11 +440,9 @@ public class Host
 
 		settings.CountOfBullets = Convert.ToInt16(callbackQuery.Data!.Split("_")[^1]);
 		db.Settings.Update(settings);
-
-		var botMessage = "<b>Настройки успешно изменены. ✅⚙️</b>";
-		await bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
-
-		await userDb.SetStateAsync(BotState.WaitingState, bot, db, update, token);
 		await db.SaveChangesAsync(token);
+
+		var botMessage = "Настройки успешно изменены. ✅⚙️";
+		await bot.AnswerCallbackQuery(callbackQuery.Id, botMessage, showAlert: true, cancellationToken: token);
 	}
 }
