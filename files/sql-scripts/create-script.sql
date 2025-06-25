@@ -65,3 +65,10 @@ ID_Bullet_in_Game serial primary key,
 Game_ID integer references Games(ID_Game) on delete cascade not null,
 Index_of_Bullet smallint not null
 );
+
+create table Info_Messages(
+ID_Info_Message serial primary key,
+User_ID integer references Users(ID_User) on delete cascade not null unique,
+ID_Waiting integer,
+ID_Choice integer
+);
