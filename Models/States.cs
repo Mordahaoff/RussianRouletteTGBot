@@ -87,10 +87,10 @@ public class BetState : State
         var userDb = settings.User;
 
         var dict = new Dictionary<string, string> {
-            { "{score}", userDb.Score.ToString() },
-            { "{maxBet}", (userDb.Score - settings.TypeOfBullet.Price).ToString() },
+            { "{score}", userDb.Score.ToNumberWithDots() },
+            { "{maxBet}", (userDb.Score - settings.TypeOfBullet.Price).ToNumberWithDots() },
             { "{title}", settings.TypeOfBullet.Title },
-            { "{price}", settings.TypeOfBullet.Price.ToString() },
+            { "{price}", ((int)settings.TypeOfBullet.Price).ToNumberWithDots() },
             { "{count}", settings.CountOfBullets.ToString() },
         };
 
@@ -142,7 +142,7 @@ public class BetState : State
             return;
         }
 
-        botMessage = $"✅ Ставка в <b>{betInt}</b> монет принята. Начнем игру! ✅";
+        botMessage = $"✅ Ставка в <b>{betInt.ToNumberWithDots()}</b> монет принята. Начнем игру! ✅";
         userDb.Score -= betInt;
         userDb.Score -= bulletsType.Price;
 
@@ -205,7 +205,7 @@ public class ChoiceState : State
             botMessage.AppendLine("Вы спустили курок... <b>Выстрела не последовало... 😮💨🔫</b>");
             botMessage.AppendLine();
         }
-        botMessage.AppendLine($"💰 Текущий выигрыш составляет <b>{game.Winning}</b> очков.");
+        botMessage.AppendLine($"💰 Текущий выигрыш составляет <b>{game.Winning.ToNumberWithDots()}</b> очков.");
         botMessage.AppendLine($"🎮 Текущий раунд: <b>{game.CountOfRounds}</b>.");
         botMessage.AppendLine($"🔫 Всего пуль в барабане: <b>{game.BulletsInGames.Count}</b>.");
         botMessage.AppendLine();
@@ -271,7 +271,7 @@ public class CollectState : State
         botMessage.AppendLine("💰 <b>ПРЕЖДЕВРЕМЕННЫЙ СБОР</b> 💰");
         botMessage.AppendLine();
         botMessage.AppendLine($"💰 Вы решили забрать деньги на <b>{game.CountOfRounds}</b>-м раунде.");
-        botMessage.AppendLine($"💰 Ваш выигрыш составляет <b>{game.Winning}</b> очков.");
+        botMessage.AppendLine($"💰 Ваш выигрыш составляет <b>{game.Winning.ToNumberWithDots()}</b> очков.");
         botMessage.AppendLine();
 
         botMessage.AppendLine("<b>Дополнительно 🔍</b>");
@@ -295,7 +295,6 @@ public class CollectState : State
 
         var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
         await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
-        // await bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -330,7 +329,7 @@ public class WinState : State
         botMessage.AppendLine("🥇 <b>ПОЛНАЯ ПОБЕДА</b> 🥇");
         botMessage.AppendLine();
         botMessage.AppendLine("🥇 В барабане остались лишь пули, так что Вы победили.");
-        botMessage.AppendLine($"🥇 Ваш выигрыш составляет <b>{game.Winning}</b> очков.");
+        botMessage.AppendLine($"🥇 Ваш выигрыш составляет <b>{game.Winning.ToNumberWithDots()}</b> очков.");
         botMessage.AppendLine();
         botMessage.AppendLine("<b>Что будете делать дальше?</b>");
 
@@ -346,7 +345,6 @@ public class WinState : State
 
         var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
         await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
-        // await bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -373,7 +371,7 @@ public class LoseState : State
         botMessage.AppendLine();
         botMessage.AppendLine($"😓 ПРОИГРЫШ 😓");
         botMessage.AppendLine();
-        botMessage.AppendLine($"😓 Вы проиграли <b>{game.Bet}</b> очков, будучи на <b>{game.CountOfRounds}</b>-м раунде.");
+        botMessage.AppendLine($"😓 Вы проиграли <b>{game.Bet.ToNumberWithDots()}</b> очков, будучи на <b>{game.CountOfRounds}</b>-м раунде.");
 
         if (game.BulletsInGames.Count > 1)
         {
@@ -426,7 +424,7 @@ public class SettingsState : State
         var dict = new Dictionary<string, string> {
             { "{title}", settings.TypeOfBullet.Title },
             { "{multiplier}", settings.TypeOfBullet.Multiplier.ToString() },
-            { "{price}", settings.TypeOfBullet.Price.ToString() },
+            { "{price}", ((int)settings.TypeOfBullet.Price).ToNumberWithDots() },
             { "{count}", settings.CountOfBullets.ToString() },
         };
 
@@ -447,7 +445,6 @@ public class SettingsState : State
 
         var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
         await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
-        // await bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         return;
     }
 
@@ -469,7 +466,7 @@ public class SetBulletsTypeState : State
         for (int i = 0; i < bulletsTypeList.Count; i++)
         {
             var type = bulletsTypeList[i];
-            sb.AppendLine($"{i + 1}. <b>{type.Title} пуля</b> | <b>{type.Multiplier}</b>x | <b>{type.Price}</b> очков");
+            sb.AppendLine($"{i + 1}. <b>{type.Title} пуля</b> | <b>{type.Multiplier}</b>x | <b>{((int)type.Price).ToNumberWithDots()}</b> очков");
         }
 
         var dict = new Dictionary<string, string> {
@@ -498,7 +495,6 @@ public class SetBulletsTypeState : State
 
         var im = await db.InfoMessages.Include(im => im.User).FirstAsync(im => im.User.TgId == callbackQuery.From.Id, token);
         await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
-        // await bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -546,7 +542,6 @@ public class SetBulletsCountState : State
 
         var im = await db.InfoMessages.Include(im => im.User).FirstAsync(im => im.User.TgId == callbackQuery.From.Id, token);
         await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
-        // await bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         return;
     }
 
