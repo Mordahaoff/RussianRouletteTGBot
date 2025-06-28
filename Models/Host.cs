@@ -142,16 +142,16 @@ public class Host
 
 								var dict = new Dictionary<string, string> {
 									{ "{name}", name },
-									{ "{score}", score.ToString() },
-									{ "{maxScore}", maxScore.ToString() },
-									{ "{totalWinning}", totalWinning.ToString() },
-									{ "{totalLost}", totalLost.ToString() },
-									{ "{countOfGames}", countOfGames.ToString() },
-									{ "{countOfWin}", countOfWin.ToString() },
-									{ "{countOfCollect}", countOfCollect.ToString() },
-									{ "{countOfLose}", countOfLose.ToString() },
-									{ "{countOfRounds}", countOfRounds.ToString() },
-									{ "{ratingPosition}", ratingPosition.ToString() }
+									{ "{score}", score.ToNumberWithDots() },
+									{ "{maxScore}", maxScore.ToNumberWithDots() },
+									{ "{totalWinning}", totalWinning.ToNumberWithDots() },
+									{ "{totalLost}", totalLost.ToNumberWithDots() },
+									{ "{countOfGames}", countOfGames.ToNumberWithDots() },
+									{ "{countOfWin}", countOfWin.ToNumberWithDots() },
+									{ "{countOfCollect}", countOfCollect.ToNumberWithDots() },
+									{ "{countOfLose}", countOfLose.ToNumberWithDots() },
+									{ "{countOfRounds}", countOfRounds.ToNumberWithDots() },
+									{ "{ratingPosition}", ratingPosition.ToNumberWithDots() }
 								};
 
 								var template = new Template(token);
@@ -196,7 +196,7 @@ public class Host
 								for (int i = 0; i < games.Count; i++)
 								{
 									var game = games[i];
-									botMessage.AppendLine($"{i + 1}. <b>{game.Result!.Title}</b> | Раунды: <b>{game.CountOfRounds}</b> | Выигрыш: <b>{game.Winning}</b> | Ставка: <b>{game.Bet}</b>");
+									botMessage.AppendLine($"{i + 1}. <b>{game.Result!.Title}</b> | Раунды: <b>{game.CountOfRounds}</b> | Выигрыш: <b>{game.Winning.ToNumberWithDots()}</b> | Ставка: <b>{game.Bet.ToNumberWithDots()}</b>");
 								}
 
 								botMessage.AppendLine();
@@ -204,9 +204,9 @@ public class Host
 								var diff = games.Sum(g => g.Winning) - games.Sum(g => g.Bet);
 								botMessage.AppendLine(diff switch
 								{
-									> 0 => $"🤩 За последние 10 игр Вы заработали <b>{diff}</b> очков 🤩",
+									> 0 => $"🤩 За последние 10 игр Вы заработали <b>{diff.ToNumberWithDots()}</b> очков 🤩",
 									0 => $"🤨 За последние 10 игр Вы <b>ничего</b> не заработали 🤨",
-									< 0 => $"😟 За последние 10 игр Вы проиграли <b>{diff * -1}</b> очков 😟"
+									< 0 => $"😟 За последние 10 игр Вы проиграли <b>{(diff * -1).ToNumberWithDots()}</b> очков 😟"
 								});
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
@@ -232,7 +232,7 @@ public class Host
 								{
 									var user = userList[i];
 									user.GetGameResultsInfo(out countOfWin, out countOfCollect, out countOfLose);
-									botMessage.AppendLine($"{i + 1}. {user.FirstName}: <b>{user.Score}</b> ({user.MaxScore}) очков. <i>W/C/L: {countOfWin}/{countOfCollect}/{countOfLose}.</i>");
+									botMessage.AppendLine($"{i + 1}. {user.FirstName}: <b>{user.Score.ToNumberWithDots()}</b> ({user.MaxScore.ToNumberWithDots()}) очков. <i>W/C/L: {countOfWin.ToNumberWithDots()}/{countOfCollect.ToNumberWithDots()}/{countOfLose.ToNumberWithDots()}.</i>");
 								}
 
 								userDb = await _db.Users.Include(u => u.Games).FirstAsync(u => u.IdUser == userDb.IdUser, token);
@@ -241,7 +241,7 @@ public class Host
 
 								botMessage.AppendLine("");
 								botMessage.AppendLine("👤 <b>Ваш рейтинг</b> 👤");
-								botMessage.AppendLine($"{ratingPosition}. {userDb.FirstName}: <b>{userDb.Score}</b> ({userDb.MaxScore}) очков. <i>W/C/L: {countOfWin}/{countOfCollect}/{countOfLose}.</i>");
+								botMessage.AppendLine($"{ratingPosition}. {userDb.FirstName}: <b>{userDb.Score.ToNumberWithDots()}</b> ({userDb.MaxScore.ToNumberWithDots()}) очков. <i>W/C/L: {countOfWin.ToNumberWithDots()}/{countOfCollect.ToNumberWithDots()}/{countOfLose.ToNumberWithDots()}.</i>");
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
 								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
