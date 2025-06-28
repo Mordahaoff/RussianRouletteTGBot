@@ -75,7 +75,7 @@ public class Host
 					if (!await _db.Users.AnyAsync(u => u.TgId == userTg.Id, token) && msg.Text == "/start")
 					{
 						// Добавление нового юзера
-						var userDb = new User() { TgId = userTg.Id, Score = 500, MaxScore = 500, FirstName = userTg.FirstName };
+						var userDb = new User() { TgId = userTg.Id, FirstName = userTg.FirstName };
 						await _db.Users.AddAsync(userDb, token);
 						await _db.SaveChangesAsync(token);
 
