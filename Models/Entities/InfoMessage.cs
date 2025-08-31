@@ -9,9 +9,7 @@ public partial class InfoMessage
 
     public int UserId { get; set; }
 
-    public int? IdWaiting { get; set; }
-
-    public int? IdChoice { get; set; }
+    public int? IdMessage { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

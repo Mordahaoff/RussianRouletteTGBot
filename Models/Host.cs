@@ -123,10 +123,7 @@ public class Host
 							{
 								var chat = callbackQuery.Message!.Chat;
 
-								var im = await _db.InfoMessages
-									.Include(im => im.User)
-										.ThenInclude(u => u.Games)
-									.FirstAsync(im => im.UserId == userDb.IdUser, token);
+								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
 
 								var name = userTg.FirstName + " " + userTg.LastName;
 								var score = userDb.Score;
@@ -159,7 +156,7 @@ public class Host
 								template.Format(dict);
 								var botMessage = template.GetTemplate();
 
-								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Rules" when currentState == BotState.WaitingState:
@@ -171,7 +168,7 @@ public class Host
 								var botMessage = template.GetTemplate();
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "History" when currentState == BotState.WaitingState:
@@ -204,13 +201,13 @@ public class Host
 								var diff = games.Sum(g => g.Winning) - games.Sum(g => g.Bet);
 								botMessage.AppendLine(diff switch
 								{
-									> 0 => $"🤩 За последние 10 игр Вы заработали <b>{diff.ToNumberWithDots()}</b> очков 🤩",
+									> 0 => $"🤩 За последние 10 игр Вы заработали <b>{diff.ToNumberWithDots()}</b> очка(-ов) 🤩",
 									0 => $"🤨 За последние 10 игр Вы <b>ничего</b> не заработали 🤨",
-									< 0 => $"😟 За последние 10 игр Вы проиграли <b>{(diff * -1).ToNumberWithDots()}</b> очков 😟"
+									< 0 => $"😟 За последние 10 игр Вы проиграли <b>{(diff * -1).ToNumberWithDots()}</b> очка(-ов) 😟"
 								});
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Rating" when currentState == BotState.WaitingState:
@@ -244,7 +241,7 @@ public class Host
 								botMessage.AppendLine($"{ratingPosition}. {userDb.FirstName}: <b>{userDb.Score.ToNumberWithDots()}</b> ({userDb.MaxScore.ToNumberWithDots()}) очков. <i>W/C/L: {countOfWin.ToNumberWithDots()}/{countOfCollect.ToNumberWithDots()}/{countOfLose.ToNumberWithDots()}.</i>");
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Bonus" when currentState == BotState.WaitingState:
@@ -271,7 +268,7 @@ public class Host
 								}
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == mb.UserId, token);
-								await _bot.EditMessageText(chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
 								return;
 							}
 						case "Settings" when currentState == BotState.WaitingState:

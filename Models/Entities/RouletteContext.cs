@@ -31,6 +31,10 @@ public partial class RouletteContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+//     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+// #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+//         => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=roulette;Username=admin;Password=admin");
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<BulletsInGame>(entity =>
@@ -89,8 +93,7 @@ public partial class RouletteContext : DbContext
             entity.HasIndex(e => e.UserId, "info_messages_user_id_key").IsUnique();
 
             entity.Property(e => e.IdInfoMessage).HasColumnName("id_info_message");
-            entity.Property(e => e.IdChoice).HasColumnName("id_choice");
-            entity.Property(e => e.IdWaiting).HasColumnName("id_waiting");
+            entity.Property(e => e.IdMessage).HasColumnName("id_message");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.User).WithOne(p => p.InfoMessage)
@@ -188,10 +191,10 @@ public partial class RouletteContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("first_name");
             entity.Property(e => e.MaxScore)
-                .HasDefaultValue(0)
+                .HasDefaultValue(500)
                 .HasColumnName("max_score");
             entity.Property(e => e.Score)
-                .HasDefaultValue(0)
+                .HasDefaultValue(500)
                 .HasColumnName("score");
             entity.Property(e => e.TgId).HasColumnName("tg_id");
         });

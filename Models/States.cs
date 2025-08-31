@@ -50,7 +50,7 @@ public class WaitingState : State
             chatId = update.CallbackQuery.Message!.Chat.Id;
 
             var im = await db.InfoMessages.Include(im => im.User).FirstAsync(im => im.User.TgId == userTgId, token);
-            await bot.EditMessageText(chatId, (int)im.IdWaiting!, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+            await bot.EditMessageText(chatId, (int)im.IdMessage!, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         }
         else if (update.Message != null)
         {
@@ -58,7 +58,7 @@ public class WaitingState : State
             chatId = update.Message.Chat.Id;
 
             var im = await db.InfoMessages.Include(im => im.User).FirstAsync(im => im.User.TgId == userTgId, token);
-            im.IdWaiting = (await bot.SendMessage(chatId, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
+            im.IdMessage = (await bot.SendMessage(chatId, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
             db.InfoMessages.Update(im);
         }
         else
@@ -86,6 +86,8 @@ public class BetState : State
             .FirstAsync(s => s.User.TgId == callbackQuery.From.Id, token);
         var userDb = settings.User;
 
+        var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
+
         var dict = new Dictionary<string, string> {
             { "{score}", userDb.Score.ToNumberWithDots() },
             { "{maxBet}", (userDb.Score - settings.TypeOfBullet.Price).ToNumberWithDots() },
@@ -100,7 +102,8 @@ public class BetState : State
         var botMessage = template.GetTemplate();
 
         var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")]]);
-        await bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+       	await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        // await bot.SendMessage(callbackQuery.Message!.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -124,7 +127,7 @@ public class BetState : State
             botMessage = "❌ Пожалуйста, введите <b>корректное</b> значение ставки. ❌";
             var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")]]);
             var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-            im.IdWaiting = (await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
+            im.IdMessage = (await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
             db.InfoMessages.Update(im);
             await db.SaveChangesAsync(token);
             return;
@@ -136,7 +139,7 @@ public class BetState : State
             botMessage = "❌ <b>Упс... Не хватает денег на оплату пули.</b> ❌";
             var inlineKeyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")]]);
             var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-            im.IdWaiting = (await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
+            im.IdMessage = (await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
             db.InfoMessages.Update(im);
             await db.SaveChangesAsync(token);
             return;
@@ -228,11 +231,11 @@ public class ChoiceState : State
         var im = await db.InfoMessages.FirstAsync(im => im.UserId == game.UserId, token);
         if (game.CountOfRounds == 1)
         {
-            im.IdWaiting = (await bot.SendMessage(chatId, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
+            im.IdMessage = (await bot.SendMessage(chatId, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token)).Id;
         }
         else
         {
-            await bot.EditMessageText(chatId, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+            await bot.EditMessageText(chatId, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         }
         db.InfoMessages.Update(im);
     }
@@ -294,7 +297,7 @@ public class CollectState : State
             ]);
 
         var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-        await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -344,7 +347,7 @@ public class WinState : State
             ]);
 
         var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-        await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -399,7 +402,7 @@ public class LoseState : State
             ]);
 
         var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-        await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         // await bot.SendMessage(update.CallbackQuery!.Message!.Chat.Id, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
@@ -444,7 +447,7 @@ public class SettingsState : State
         ]);
 
         var im = await db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-        await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await bot.EditMessageText(update.CallbackQuery!.Message!.Chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         return;
     }
 
@@ -494,7 +497,7 @@ public class SetBulletsTypeState : State
         ]);
 
         var im = await db.InfoMessages.Include(im => im.User).FirstAsync(im => im.User.TgId == callbackQuery.From.Id, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -541,7 +544,7 @@ public class SetBulletsCountState : State
         ]);
 
         var im = await db.InfoMessages.Include(im => im.User).FirstAsync(im => im.User.TgId == callbackQuery.From.Id, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)im.IdWaiting!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         return;
     }
 
