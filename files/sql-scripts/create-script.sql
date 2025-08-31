@@ -6,15 +6,15 @@ grant all on schema public to public;
 create table Users(
 ID_User serial primary key,
 First_Name varchar(255) not null,
-TG_ID bigint not null,
+TG_ID bigint unique not null,
 Bot_State_ID integer not null default 1,
-Max_score integer not null default 0,
-Score integer not null default 0
+Max_score integer not null default 2500,
+Score integer not null default 2500
 );
 
 create table Money_Bonuses(
 ID_Money_Bonus serial primary key,
-User_ID integer references Users(ID_User) on delete cascade not null,
+User_ID integer unique references Users(ID_User) on delete cascade not null,
 Collection_Time timestamp not null default current_timestamp
 );
 
@@ -40,7 +40,7 @@ Price smallint not null
 
 create table Settings(
 ID_Setting serial primary key,
-User_ID integer references Users(ID_User) on delete cascade not null,
+User_ID integer unique references Users(ID_User) on delete cascade not null,
 Type_of_Bullet_ID integer references Types_of_Bullet(ID_Type_of_Bullet) on delete cascade default 1 not null,
 Count_of_Bullets smallint default 1 not null
 );
@@ -68,7 +68,6 @@ Index_of_Bullet smallint not null
 
 create table Info_Messages(
 ID_Info_Message serial primary key,
-User_ID integer references Users(ID_User) on delete cascade not null unique,
-ID_Waiting integer,
-ID_Choice integer
+User_ID integer unique references Users(ID_User) on delete cascade not null unique,
+ID_Message bigint
 );
