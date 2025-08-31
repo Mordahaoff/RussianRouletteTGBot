@@ -112,6 +112,7 @@ public class Host
 				{
 					_onCallbackQuery?.Invoke(client, update);
 					var callbackQuery = update.CallbackQuery!;
+					var callbackQueryId = callbackQuery.Id;
 					var userTg = callbackQuery.From!;
 					var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
 
@@ -156,7 +157,15 @@ public class Host
 								template.Format(dict);
 								var botMessage = template.GetTemplate();
 
-								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								try
+								{
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								}
+								catch (RequestException)
+								{
+									await _bot.AnswerCallbackQuery(callbackQueryId, "⚠️ Ошибка: вы уже в этом разделе! ⚠️", true, cancellationToken: token);
+								}
+
 								return;
 							}
 						case "Rules" when currentState == BotState.WaitingState:
@@ -168,7 +177,15 @@ public class Host
 								var botMessage = template.GetTemplate();
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+
+								try
+								{
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								}
+								catch (RequestException)
+								{
+									await _bot.AnswerCallbackQuery(callbackQueryId, "⚠️ Ошибка: вы уже в этом разделе! ⚠️", true, cancellationToken: token);
+								}
 								return;
 							}
 						case "History" when currentState == BotState.WaitingState:
@@ -207,7 +224,14 @@ public class Host
 								});
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								try
+								{
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								}
+								catch (RequestException)
+								{
+									await _bot.AnswerCallbackQuery(callbackQueryId, "⚠️ Ошибка: вы уже в этом разделе! ⚠️", true, cancellationToken: token);
+								}
 								return;
 							}
 						case "Rating" when currentState == BotState.WaitingState:
@@ -241,7 +265,14 @@ public class Host
 								botMessage.AppendLine($"{ratingPosition}. {userDb.FirstName}: <b>{userDb.Score.ToNumberWithDots()}</b> ({userDb.MaxScore.ToNumberWithDots()}) очков. <i>W/C/L: {countOfWin.ToNumberWithDots()}/{countOfCollect.ToNumberWithDots()}/{countOfLose.ToNumberWithDots()}.</i>");
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
-								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								try
+								{
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								}
+								catch (RequestException)
+								{
+									await _bot.AnswerCallbackQuery(callbackQueryId, "⚠️ Ошибка: вы уже в этом разделе! ⚠️", true, cancellationToken: token);
+								}
 								return;
 							}
 						case "Bonus" when currentState == BotState.WaitingState:
@@ -268,7 +299,14 @@ public class Host
 								}
 
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == mb.UserId, token);
-								await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								try
+								{
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+								}
+								catch (RequestException)
+								{
+									await _bot.AnswerCallbackQuery(callbackQueryId, "⚠️ Ошибка: вы уже в этом разделе! ⚠️", true, cancellationToken: token);
+								}
 								return;
 							}
 						case "Settings" when currentState == BotState.WaitingState:
