@@ -9,6 +9,7 @@ using RussianRouletteTGBot.Models.Entities;
 using User = RussianRouletteTGBot.Models.Entities.User;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Formats.Asn1;
 
 namespace RussianRouletteTGBot.Models;
 
@@ -19,6 +20,7 @@ public class Host
 	private Action<ITelegramBotClient, Update>? _onMessage;
 	private Action<ITelegramBotClient, Update>? _onCallbackQuery;
 	private readonly RouletteContext _db;
+	private const long OWNER_ID = 825165091;
 
 	public Host(string token, string connectionString)
 	{
@@ -159,7 +161,7 @@ public class Host
 
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -180,7 +182,7 @@ public class Host
 
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -199,6 +201,7 @@ public class Host
 								var games = await _db.Games
 									.Include(g => g.Result)
 									.Where(g => g.UserId == userDb.IdUser && g.ResultId != null)
+									.OrderByDescending(g => g.IdGame)
 									.Take(10)
 									.ToListAsync(token);
 
@@ -226,7 +229,7 @@ public class Host
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -267,7 +270,7 @@ public class Host
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -301,7 +304,7 @@ public class Host
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == mb.UserId, token);
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -317,7 +320,7 @@ public class Host
 							}
 						case "Play" when currentState == BotState.WaitingState || currentState == BotState.CollectState || currentState == BotState.WinState || currentState == BotState.LoseState:
 							{
-								if (!_db.Games.Any(g => g.UserId == userDb.IdUser && g.ResultId == null))
+								if (!await _db.Games.AnyAsync(g => g.UserId == userDb.IdUser && g.ResultId == null, token))
 								{
 									await userDb.SetStateAsync(BotState.BetState, client, _db, update, token);
 									await _db.SaveChangesAsync(token);
@@ -411,6 +414,18 @@ public class Host
 									}
 								}
 								await _bot.AnswerCallbackQuery(callbackQuery.Id, botMessage.ToString(), showAlert: true, cancellationToken: token);
+								return;
+							}
+						case "AdminPanel" when currentState == BotState.WaitingState || currentState == BotState.AdminPanel_ChangePlayerPointsState:
+							{
+								await userDb.SetStateAsync(BotState.AdminPanelState, _bot, _db, update, token);
+								await _db.SaveChangesAsync(token);
+								return;
+							}
+						case "AdminPanel_ChangePlayerPointsState" when currentState == BotState.AdminPanelState:
+							{
+								await userDb.SetStateAsync(BotState.AdminPanel_ChangePlayerPointsState, _bot, _db, update, token);
+								await _db.SaveChangesAsync(token);
 								return;
 							}
 						default:

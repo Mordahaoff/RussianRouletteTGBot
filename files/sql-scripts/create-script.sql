@@ -69,5 +69,5 @@ Index_of_Bullet smallint not null
 create table Info_Messages(
 ID_Info_Message serial primary key,
 User_ID integer unique references Users(ID_User) on delete cascade not null unique,
-ID_Message bigint
+ID_Message integer
 );

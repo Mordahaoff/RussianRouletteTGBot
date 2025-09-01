@@ -7,7 +7,7 @@ public partial class User
 {
     public async Task SetStateAsync(BotState newState, ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        this.BotStateId = (int)newState;
+        BotStateId = (int)newState;
         db.Users.Update(this);
 
         var stateInstance = StateFactory.GetState(newState);
@@ -16,21 +16,21 @@ public partial class User
 
     public async Task DoStateAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        if (Enum.TryParse<BotState>(this.BotStateId.ToString(), out var botstate))
+        if (Enum.TryParse<BotState>(BotStateId.ToString(), out var botstate))
         {
             var stateInstance = StateFactory.GetState(botstate);
             await stateInstance.DoAsync(bot, db, update, token);
         }
         else
         {
-            throw new ArgumentException($"Unknown BotStateId: {this.BotStateId}");
+            throw new ArgumentException($"Unknown BotStateId: {BotStateId}");
         }
     }
 
     public void GetGameResultsInfo(out int countOfWin, out int countOfCollect, out int countOfLose)
     {
-        countOfWin = this.Games.Count(g => g.ResultId == (int)ResultOfGame.Win);
-        countOfCollect = this.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect);
-        countOfLose = this.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose);
+        countOfWin = Games.Count(g => g.ResultId == (int)ResultOfGame.Win);
+        countOfCollect = Games.Count(g => g.ResultId == (int)ResultOfGame.Collect);
+        countOfLose = Games.Count(g => g.ResultId == (int)ResultOfGame.Lose);
     }
 }

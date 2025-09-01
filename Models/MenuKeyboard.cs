@@ -4,9 +4,11 @@ namespace RussianRouletteTGBot;
 
 public static class MenuKeyboard
 {
-    public static InlineKeyboardMarkup GetKeyboard()
+    public static InlineKeyboardMarkup GetKeyboard(bool isAdmin)
     {
-        return new InlineKeyboardMarkup(
+        if (isAdmin)
+        {
+            return new InlineKeyboardMarkup(
             [
                 // first row
                 [
@@ -25,6 +27,34 @@ public static class MenuKeyboard
                 [
                     InlineKeyboardButton.WithCallbackData("Играть 🎮", "Play"),
                 ],
+                // fourth row
+                [
+                    InlineKeyboardButton.WithCallbackData("⭕️ Админ-панель ⭕️", "AdminPanel"),
+                ],
             ]);
+        }
+        else
+        {
+            return new InlineKeyboardMarkup(
+                [
+                    // first row
+                    [
+                        InlineKeyboardButton.WithCallbackData("Профиль 👤", "Profile"),
+                        InlineKeyboardButton.WithCallbackData("Рейтинг 🏆", "Rating"),
+                        InlineKeyboardButton.WithCallbackData("История 👾", "History"),
+                    ],
+                    // second row
+                    [
+                        InlineKeyboardButton.WithCallbackData("Правила 📄", "Rules"),
+                        InlineKeyboardButton.WithCallbackData("Настройки ⚙️", "Settings"),
+                        InlineKeyboardButton.WithCallbackData("Бонус 🎁", "Bonus"),
+
+                    ],
+                    // third row
+                    [
+                        InlineKeyboardButton.WithCallbackData("Играть 🎮", "Play"),
+                    ],
+                ]);
+        }
     }
 }
