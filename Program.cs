@@ -10,8 +10,8 @@ internal class Program
         try
         {
             var json = await File.ReadAllTextAsync("appsettings.json");
-            options = JsonSerializer.Deserialize<Options>(File.ReadAllText("appsettings.json"));
-            if (options == null)
+            options = JsonSerializer.Deserialize<Options>(json);
+            if (options == null || options.TokenAPI == null || options.ConnectionStrings.DefaultConnection == null)
             {
                 Console.Error.WriteLine("Не удалось десериализировать настройки из appsettings.json.");
                 return;

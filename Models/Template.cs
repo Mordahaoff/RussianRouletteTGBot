@@ -8,7 +8,14 @@ public class Template(CancellationToken token)
     private string _template = "";
     private readonly CancellationToken _token = token;
 
-    public async Task ReadTemplateAsync(string path) => _template = await File.ReadAllTextAsync(path, _token);
+    public async Task ReadTemplateAsync(string path)
+    {
+        if (string.IsNullOrEmpty(path)) throw new ArgumentNullException($"Path: {path} is null.");
+        _template = await File.ReadAllTextAsync(path, _token);
+        if (string.IsNullOrEmpty(_template)) throw new NullReferenceException($"The text read from path: {path} is null.");
+    }
+
+
 
     public void Format(Dictionary<string, string> dict)
     {

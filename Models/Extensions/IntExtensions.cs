@@ -1,4 +1,4 @@
-namespace RussianRouletteTGBot.Models;
+namespace RussianRouletteTGBot.Models.Extensions;
 
 public static class IntExtensions
 {

@@ -6,6 +6,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using RussianRouletteTGBot.Models.Entities;
+using RussianRouletteTGBot.Models.Extensions;
 using User = RussianRouletteTGBot.Models.Entities.User;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -82,11 +83,11 @@ public class Host
 						await _db.SaveChangesAsync(token);
 
 						// Добавление настроек по умолчанию
-						await _db.Settings.AddAsync(new Setting() { UserId = userDb.IdUser }, token);
+						await _db.Settings.AddAsync(new Entities.Setting() { UserId = userDb.IdUser }, token);
 						// Начисление бонуса за регистрацию
 						await _db.MoneyBonuses.AddAsync(new MoneyBonuse() { UserId = userDb.IdUser, CollectionTime = DateTime.Now }, token);
 						// Добавление записи с информативными сообщениями для этого юзера
-						await _db.InfoMessages.AddAsync(new InfoMessage() { UserId = userDb.IdUser, }, token);
+						await _db.InfoMessages.AddAsync(new Entities.InfoMessage() { UserId = userDb.IdUser, }, token);
 						await _db.SaveChangesAsync(token);
 
 						var template = new Template(token);
@@ -161,7 +162,7 @@ public class Host
 
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: InlineKeyboards.GetMenuKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -182,7 +183,7 @@ public class Host
 
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: InlineKeyboards.GetMenuKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -229,7 +230,7 @@ public class Host
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: InlineKeyboards.GetMenuKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -270,7 +271,7 @@ public class Host
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == userDb.IdUser, token);
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: InlineKeyboards.GetMenuKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{
@@ -304,7 +305,7 @@ public class Host
 								var im = await _db.InfoMessages.FirstAsync(im => im.UserId == mb.UserId, token);
 								try
 								{
-									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: MenuKeyboard.GetKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
+									await _bot.EditMessageText(chat.Id, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: InlineKeyboards.GetMenuKeyboard(userTg.Id == OWNER_ID), cancellationToken: token);
 								}
 								catch (RequestException)
 								{

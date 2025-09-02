@@ -12,5 +12,10 @@ public static class MultiplierFactory
         { 6, 30 },
     };
 
-    public static double GetMultiplier(int countOfBullets) => _multiplierDict[countOfBullets];
+    public static double GetMultiplier(int countOfBullets)
+    {
+        if (_multiplierDict.TryGetValue(countOfBullets, out var multiplier))
+            return multiplier;
+        throw new ArgumentException($"Unknown countOfBullets: {countOfBullets}");
+    }
 }
