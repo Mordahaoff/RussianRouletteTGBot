@@ -75,10 +75,11 @@ public class Host
 					var userTg = msg.From!;
 					var chat = msg.Chat!;
 
-					if (!await _db.Users.AnyAsync(u => u.TgId == userTg.Id, token) && msg.Text == "/start")
+					var userTgId = userTg.Id;
+					if (!await _db.Users.AnyAsync(u => u.TgId == userTgId, token) && msg.Text == "/start")
 					{
 						// Добавление нового юзера
-						var userDb = new User() { TgId = userTg.Id, FirstName = userTg.FirstName };
+						var userDb = new User() { TgId = userTgId, FirstName = userTg.FirstName };
 						await _db.Users.AddAsync(userDb, token);
 						await _db.SaveChangesAsync(token);
 
@@ -87,7 +88,7 @@ public class Host
 						// Начисление бонуса за регистрацию
 						await _db.MoneyBonuses.AddAsync(new MoneyBonuse() { UserId = userDb.IdUser, CollectionTime = DateTime.Now }, token);
 						// Добавление записи с информативными сообщениями для этого юзера
-						await _db.InfoMessages.AddAsync(new Entities.InfoMessage() { UserId = userDb.IdUser, }, token);
+						await _db.ServiceInfos.AddAsync(new Entities.ServiceInfo() { UserId = userDb.IdUser }, token);
 						await _db.SaveChangesAsync(token);
 
 						var template = new Template(token);
@@ -102,9 +103,9 @@ public class Host
 						return;
 					}
 
-					if (await _db.Users.AnyAsync(u => u.TgId == userTg.Id, token))
+					if (await _db.Users.AnyAsync(u => u.TgId == userTgId, token))
 					{
-						var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
+						var userDb = await _db.Users.FirstAsync(u => u.TgId == userTgId, token);
 						await userDb.DoStateAsync(client, _db, update, token);
 						return;
 					}
@@ -180,7 +181,7 @@ public class Host
 											template.Format(dict);
 											var botMessage = template.GetTemplate();
 
-											await TryEditInfoMessage(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
+											await TryEditServiceInfo(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
 											return;
 										}
 									case "Rules":
@@ -189,7 +190,7 @@ public class Host
 											await template.ReadTemplateAsync("files/txt/Rules.txt");
 											var botMessage = template.GetTemplate();
 
-											await TryEditInfoMessage(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
+											await TryEditServiceInfo(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
 											return;
 										}
 									case "History":
@@ -226,7 +227,7 @@ public class Host
 												< 0 => $"😟 За последние 10 игр Вы проиграли <b>{(diff * -1).ToNumberWithDots()}</b> очка(-ов) 😟"
 											});
 
-											await TryEditInfoMessage(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
+											await TryEditServiceInfo(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
 											return;
 										}
 									case "Rating":
@@ -257,7 +258,7 @@ public class Host
 											botMessage.AppendLine("👤 <b>Ваш рейтинг</b> 👤");
 											botMessage.AppendLine($"{ratingPosition}. {userDb.FirstName}: <b>{userDb.Score.ToNumberWithDots()}</b> ({userDb.MaxScore.ToNumberWithDots()}) очков. <i>W/C/L: {countOfWin.ToNumberWithDots()}/{countOfCollect.ToNumberWithDots()}/{countOfLose.ToNumberWithDots()}.</i>");
 
-											await TryEditInfoMessage(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
+											await TryEditServiceInfo(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
 											return;
 										}
 									case "Bonus":
@@ -282,7 +283,7 @@ public class Host
 												botMessage.AppendLine($"⏰ Бонус будет доступен {mb.CollectionTime.AddHours(3)}. ⏰");
 											}
 
-											await TryEditInfoMessage(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
+											await TryEditServiceInfo(_bot, _db, chat.Id, callbackQueryId, userTg.Id, botMessage.ToString(), token);
 											return;
 										}
 								}
@@ -381,10 +382,24 @@ public class Host
 								await HandleCallbackChangeCountAsync(_bot, _db, update, token);
 								return;
 							}
-						case BotState.AdminPanelState when callbackQuery.Data == "AdminPanel_ChangePlayerPointsState":
+						case BotState.AdminPanelState:
 							{
-								await userDb.SetStateAsync(BotState.AdminPanel_ChangePlayerPointsState, _bot, _db, update, token);
-								await _db.SaveChangesAsync(token);
+								var shortData = callbackQuery.Data!.Split("_")[^1];
+								switch (shortData)
+								{
+									case "ChangePlayerPointsState":
+										{
+											await userDb.SetStateAsync(BotState.AdminPanel_ChangePlayerPointsState, _bot, _db, update, token);
+											await _db.SaveChangesAsync(token);
+											return;
+										}
+									case "MessageForEveryone":
+										{
+											await userDb.SetStateAsync(BotState.AdminPanel_MessageForEveryone, _bot, _db, update, token);
+											await _db.SaveChangesAsync(token);
+											return;
+										}
+								}
 								return;
 							}
 						default:
@@ -455,12 +470,12 @@ public class Host
 		await bot.AnswerCallbackQuery(callbackQuery.Id, botMessage, showAlert: true, cancellationToken: token);
 	}
 
-	private static async Task TryEditInfoMessage(ITelegramBotClient bot, RouletteContext db, long chatId, string callbackQueryId, long userTgId, string botMessage, CancellationToken token)
+	private static async Task TryEditServiceInfo(ITelegramBotClient bot, RouletteContext db, long chatId, string callbackQueryId, long userTgId, string botMessage, CancellationToken token)
 	{
-		var im = await Extensions.InfoMessage.GetInfoMessageAsyncByTgId(db, userTgId, token);
+		var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
 		try
 		{
-			await bot.EditMessageText(chatId, (int)im.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: InlineKeyboards.GetMenuKeyboard(userTgId == OWNER_ID), cancellationToken: token);
+			await bot.EditMessageText(chatId, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: InlineKeyboards.GetMenuKeyboard(userTgId == OWNER_ID), cancellationToken: token);
 		}
 		catch (RequestException)
 		{

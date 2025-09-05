@@ -19,21 +19,17 @@ public partial class RouletteContext : DbContext
 
     public virtual DbSet<Game> Games { get; set; }
 
-    public virtual DbSet<InfoMessage> InfoMessages { get; set; }
-
     public virtual DbSet<MoneyBonuse> MoneyBonuses { get; set; }
 
     public virtual DbSet<ResultsOfGame> ResultsOfGames { get; set; }
+
+    public virtual DbSet<ServiceInfo> ServiceInfos { get; set; }
 
     public virtual DbSet<Setting> Settings { get; set; }
 
     public virtual DbSet<TypesOfBullet> TypesOfBullets { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
-
-    //     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    // #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //         => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=roulette;Username=admin;Password=admin");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -84,23 +80,6 @@ public partial class RouletteContext : DbContext
                 .HasConstraintName("games_user_id_fkey");
         });
 
-        modelBuilder.Entity<InfoMessage>(entity =>
-        {
-            entity.HasKey(e => e.IdInfoMessage).HasName("info_messages_pkey");
-
-            entity.ToTable("info_messages");
-
-            entity.HasIndex(e => e.UserId, "info_messages_user_id_key").IsUnique();
-
-            entity.Property(e => e.IdInfoMessage).HasColumnName("id_info_message");
-            entity.Property(e => e.IdMessage).HasColumnName("id_message");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.User).WithOne(p => p.InfoMessage)
-                .HasForeignKey<InfoMessage>(d => d.UserId)
-                .HasConstraintName("info_messages_user_id_fkey");
-        });
-
         modelBuilder.Entity<MoneyBonuse>(entity =>
         {
             entity.HasKey(e => e.IdMoneyBonus).HasName("money_bonuses_pkey");
@@ -131,6 +110,23 @@ public partial class RouletteContext : DbContext
             entity.Property(e => e.Title)
                 .HasMaxLength(255)
                 .HasColumnName("title");
+        });
+
+        modelBuilder.Entity<ServiceInfo>(entity =>
+        {
+            entity.HasKey(e => e.IdServiceInfo).HasName("service_info_pkey");
+
+            entity.ToTable("service_info");
+
+            entity.HasIndex(e => e.UserId, "service_info_user_id_key").IsUnique();
+
+            entity.Property(e => e.IdServiceInfo).HasColumnName("id_service_info");
+            entity.Property(e => e.IdMessage).HasColumnName("id_message");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithOne(p => p.ServiceInfo)
+                .HasForeignKey<ServiceInfo>(d => d.UserId)
+                .HasConstraintName("service_info_user_id_fkey");
         });
 
         modelBuilder.Entity<Setting>(entity =>

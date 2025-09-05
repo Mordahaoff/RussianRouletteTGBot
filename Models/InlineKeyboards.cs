@@ -61,7 +61,7 @@ public static class InlineKeyboards
     public static InlineKeyboardMarkup GetToWaitingStateKeyboard()
         => new([[InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")]]);
 
-    public static InlineKeyboardMarkup GetAdminPanelKeyboard()
+    public static InlineKeyboardMarkup GetToAdminPanelKeyboard()
      => new([[InlineKeyboardButton.WithCallbackData("[Админ-панель]", "AdminPanel")]]);
 
 }

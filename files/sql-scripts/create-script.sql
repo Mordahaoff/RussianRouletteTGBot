@@ -66,8 +66,8 @@ Game_ID integer references Games(ID_Game) on delete cascade not null,
 Index_of_Bullet smallint not null
 );
 
-create table Info_Messages(
-ID_Info_Message serial primary key,
+create table Service_Info(
+ID_Service_Info serial primary key,
 User_ID integer unique references Users(ID_User) on delete cascade not null unique,
-ID_Message integer
+ID_Message bigint
 );
