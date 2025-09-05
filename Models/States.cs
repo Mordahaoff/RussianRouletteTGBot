@@ -485,7 +485,7 @@ public class SetBulletsTypeState : State
                 InlineKeyboardButton.WithCallbackData("Платиновая", "SetBulletsTypeTo_Platinum"),
             ],
             [
-                InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")
+                InlineKeyboardButton.WithCallbackData("[Настройки]", "Settings")
             ]
         ]);
 
@@ -532,7 +532,7 @@ public class SetBulletsCountState : State
                 InlineKeyboardButton.WithCallbackData("6️⃣", "SetBulletsCountTo_6"),
             ],
             [
-                InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")
+                InlineKeyboardButton.WithCallbackData("[Настройки]", "Settings")
             ]
         ]);
 
