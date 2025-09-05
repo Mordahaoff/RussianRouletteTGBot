@@ -30,8 +30,6 @@ internal class Program
 
         var host = new Host(options.TokenAPI, options.ConnectionStrings.DefaultConnection);
         host.Start();
-
-        Console.WriteLine("Программа запущена...");
         Console.ReadLine();
     }
 }
