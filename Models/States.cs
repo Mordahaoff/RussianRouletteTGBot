@@ -581,7 +581,8 @@ public class AdminPanelState : State
         string botMessage = "Админ-панель.";
         var inlineKeyboard = new InlineKeyboardMarkup([
             [
-                InlineKeyboardButton.WithCallbackData("Начисление очков 💰", "AdminPanel_ChangePlayerPointsState")
+                InlineKeyboardButton.WithCallbackData("Начисление очков 💰", "AdminPanel_ChangePlayerPointsState"),
+                InlineKeyboardButton.WithCallbackData("Сообщение всем 📩", "AdminPanel_MessageForEveryone"),
             ],
             [
                 InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")
@@ -669,16 +670,17 @@ public class AdminPanel_MessageForEveryoneState : State
             var errorMessage = "❌ Ошибка: введите текстовое сообщение. ❌";
             await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, errorMessage, inlineKeyboard, token);
             await db.SaveChangesAsync(token);
+            return;
         }
 
+        var everyoneMessage = new StringBuilder("‼️ Сообщение от администратора ‼️\n\n").ToString() + message.Text;
         var chatList = await db.Users.Select(u => u.TgId).ToListAsync(token);
         foreach (var chatId in chatList)
         {
-            await bot.SendMessage(chatId, message.Text!, cancellationToken: token);
+            await bot.SendMessage(chatId, everyoneMessage, cancellationToken: token);
         }
 
-        // РАСПИСАТЬ ДАЛЬНЕЙШУЮ РАБОТУ
-
-        // await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, botMessage, inlineKeyboard, token);
+        var botMessage = "✅ Операция выполнена успешно. ✅";
+        await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, botMessage, inlineKeyboard, token);
     }
 }

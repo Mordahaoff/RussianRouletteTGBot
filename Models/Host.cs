@@ -122,7 +122,7 @@ public class Host
 					var currentState = (BotState)userDb.BotStateId;
 					switch (currentState)
 					{
-						case BotState.WaitingState or BotState.AdminPanel_ChangePlayerPointsState when callbackQuery.Data == "AdminPanel":
+						case BotState.WaitingState or BotState.AdminPanel_ChangePlayerPointsState or BotState.AdminPanel_MessageForEveryoneState when callbackQuery.Data == "AdminPanel":
 							{
 								await userDb.SetStateAsync(BotState.AdminPanelState, _bot, _db, update, token);
 								await _db.SaveChangesAsync(token);
@@ -395,7 +395,7 @@ public class Host
 										}
 									case "MessageForEveryone":
 										{
-											await userDb.SetStateAsync(BotState.AdminPanel_MessageForEveryone, _bot, _db, update, token);
+											await userDb.SetStateAsync(BotState.AdminPanel_MessageForEveryoneState, _bot, _db, update, token);
 											await _db.SaveChangesAsync(token);
 											return;
 										}

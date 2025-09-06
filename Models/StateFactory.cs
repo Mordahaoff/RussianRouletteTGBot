@@ -15,7 +15,8 @@ public static class StateFactory
         { BotState.SetBulletsCountState, new SetBulletsCountState() },
         { BotState.WinOrChoiceState, new WinOrChoiceState() },
         { BotState.AdminPanelState, new AdminPanelState() },
-        { BotState.AdminPanel_ChangePlayerPointsState, new AdminPanel_ChangePlayerPointsState() }
+        { BotState.AdminPanel_ChangePlayerPointsState, new AdminPanel_ChangePlayerPointsState() },
+        { BotState.AdminPanel_MessageForEveryoneState, new AdminPanel_MessageForEveryoneState() },
     };
 
     public static State GetState(BotState botState)

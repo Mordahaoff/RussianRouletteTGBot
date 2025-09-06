@@ -14,7 +14,7 @@ public enum BotState
     WinOrChoiceState,
     AdminPanelState,
     AdminPanel_ChangePlayerPointsState,
-    AdminPanel_MessageForEveryone
+    AdminPanel_MessageForEveryoneState
 }
 
 public enum TypeOfBullet
