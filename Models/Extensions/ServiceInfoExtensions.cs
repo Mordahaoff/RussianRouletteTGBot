@@ -29,5 +29,6 @@ public partial class ServiceInfo
         var sentMessage = await bot.SendMessage(chatId, botMessage, Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         si.IdMessage = sentMessage.Id;
         db.ServiceInfos.Update(si);
+        await db.SaveChangesAsync(token);
     }
 }

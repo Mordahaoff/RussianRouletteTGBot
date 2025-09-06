@@ -7,9 +7,14 @@ internal class Program
     {
         Options? options;
 
+        var fileName = "appsettings.json"; // Имя файла
+        string basePath = AppContext.BaseDirectory; // Получаем путь к папке, из которой запущено приложение
+        string projectRoot = Path.GetFullPath(Path.Combine(basePath, "../../..")); // Чтобы подняться на уровень выше и попасть в корень проекта
+        string filePath = Path.Combine(projectRoot, fileName); // Полный путь к файлу
+
         try
         {
-            var json = await File.ReadAllTextAsync("appsettings.json");
+            var json = await File.ReadAllTextAsync(filePath);
             options = JsonSerializer.Deserialize<Options>(json);
             if (options == null || options.TokenAPI == null || options.ConnectionStrings.DefaultConnection == null)
             {
@@ -19,12 +24,12 @@ internal class Program
         }
         catch (FileNotFoundException)
         {
-            Console.Error.WriteLine("Файл appsettings.json не найден.");
+            Console.Error.WriteLine($"Файл {filePath} не найден.");
             return;
         }
         catch (JsonException)
         {
-            Console.Error.WriteLine("Ошибка при парсинге файла appsettings.json");
+            Console.Error.WriteLine($"Ошибка при парсинге файла {filePath}");
             return;
         }
 

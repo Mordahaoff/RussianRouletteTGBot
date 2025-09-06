@@ -9,6 +9,7 @@ public partial class User
     {
         BotStateId = (int)newState;
         db.Users.Update(this);
+        await db.SaveChangesAsync(token);
 
         var stateInstance = StateFactory.GetState(newState);
         await stateInstance.EnterAsync(bot, db, update, token);

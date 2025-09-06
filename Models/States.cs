@@ -95,10 +95,15 @@ public class BetState : State
         var settings = await Extensions.Setting.GetSettingsAsync(db, userTgId, token);
         var userDb = settings.User;
 
-        if (!int.TryParse(msg.Text, out int betInt)) throw new FormatException($"Failed to convert {msg.Text} to Int32.");
+        string botMessage;
+        if (!int.TryParse(msg.Text, out int betInt))
+        {
+            botMessage = "❌ Пожалуйста, введите <b>корректное</b> значение ставки. ❌";
+            await SendErrorMessageAsync(bot, db, userTgId, msg.Chat.Id, botMessage, token);
+            return;
+        }
         var bulletsType = settings.TypeOfBullet;
         var diff = userDb.Score - betInt;
-        string botMessage;
 
         // Ставка меньше 100 или ставка больше имеющегося счета --> Некорректный ввод
         if (betInt < 100 || betInt > userDb.Score)
@@ -145,7 +150,6 @@ public class BetState : State
 
         await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
         await userDb.SetStateAsync(BotState.ChoiceState, bot, db, update, token);
-        await db.SaveChangesAsync(token);
     }
 
     public static async Task SendErrorMessageAsync(ITelegramBotClient bot, RouletteContext db, long userTgId, long chatId, string botMessage, CancellationToken token)
@@ -153,7 +157,6 @@ public class BetState : State
         var inlineKeyboard = InlineKeyboards.GetToWaitingStateKeyboard();
         var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
         await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, chatId, botMessage, inlineKeyboard, token);
-        await db.SaveChangesAsync(token);
     }
 }
 
@@ -644,7 +647,6 @@ public class AdminPanel_ChangePlayerPointsState : State
                 SetUserScore(user, score);
             }
             db.Users.UpdateRange(userList);
-            await db.SaveChangesAsync(token);
             botMessage = "✅ Операция выполнена успешно. ✅";
         }
         else if (long.TryParse(firstParam, out var tgId))
@@ -656,7 +658,6 @@ public class AdminPanel_ChangePlayerPointsState : State
                 var userDb = await db.Users.FirstAsync(u => u.TgId == tgId, token);
                 SetUserScore(userDb, score);
                 db.Users.Update(userDb);
-                await db.SaveChangesAsync(token);
                 botMessage = "✅ Операция выполнена успешно. ✅";
             }
             else
@@ -711,7 +712,6 @@ public class AdminPanel_MessageForEveryoneState : State
         {
             var errorMessage = "❌ Ошибка: введите текстовое сообщение. ❌";
             await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, errorMessage, inlineKeyboard, token);
-            await db.SaveChangesAsync(token);
             return;
         }
 

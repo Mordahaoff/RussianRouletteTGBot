@@ -57,7 +57,7 @@ public class Host
 	{
 		var msg = exception switch
 		{
-			ApiRequestException apiRequestException => $"Telegram API Error:{apiRequestException.Message}, {apiRequestException.Source}",
+			ApiRequestException apiRequestException => $"Telegram API Error: {apiRequestException.Message}, {apiRequestException.Source}",
 			_ => $"Error: [{exception}]"
 		};
 		Console.WriteLine(msg);
@@ -98,7 +98,7 @@ public class Host
 
 						//  Изменение состояние юзера в БД
 						await userDb.SetStateAsync(BotState.WaitingState, client, _db, update, token);
-						await _db.SaveChangesAsync(token);
+
 						return;
 					}
 
@@ -117,29 +117,24 @@ public class Host
 					var callbackQueryId = callbackQuery.Id;
 					var userTg = callbackQuery.From!;
 					var userDb = await _db.Users.FirstAsync(u => u.TgId == userTg.Id, token);
-
 					var currentState = (BotState)userDb.BotStateId;
+
 					switch (currentState)
 					{
 						case BotState.WaitingState or BotState.AdminPanel_ChangePlayerPointsState or BotState.AdminPanel_MessageForEveryoneState when callbackQuery.Data == "AdminPanel":
 							{
 								await userDb.SetStateAsync(BotState.AdminPanelState, _bot, _db, update, token);
-								await _db.SaveChangesAsync(token);
 								return;
 							}
 						case BotState.WaitingState or BotState.CollectState or BotState.WinState or BotState.LoseState when callbackQuery.Data == "Play":
 							{
-								if (!await _db.Games.AnyAsync(g => g.UserId == userDb.IdUser && g.ResultId == null, token))
-								{
-									await userDb.SetStateAsync(BotState.BetState, client, _db, update, token);
-									await _db.SaveChangesAsync(token);
-								}
+								await userDb.SetStateAsync(BotState.BetState, client, _db, update, token);
 								return;
 							}
 						case BotState.WaitingState or BotState.SetBulletsTypeState or BotState.SetBulletsCountState when callbackQuery.Data == "Settings":
 							{
 								await userDb.SetStateAsync(BotState.SettingsState, client, _db, update, token);
-								await _db.SaveChangesAsync(token);
+
 								return;
 							}
 						case BotState.WaitingState:
@@ -155,9 +150,9 @@ public class Host
 											var totalWinning = userDb.Games.Where(g => g.ResultId == (int)ResultOfGame.Win || g.ResultId == (int)ResultOfGame.Collect).Sum(g => g.Winning);
 											var totalLost = userDb.Games.Where(g => g.ResultId == (int)ResultOfGame.Lose).Sum(g => g.Bet);
 											var countOfGames = userDb.Games.Count;
-											var countOfCollect = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect); // Collect
-											var countOfWin = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Win); // Win
-											var countOfLose = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose); // Lose
+											var countOfCollect = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Collect);
+											var countOfWin = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Win);
+											var countOfLose = userDb.Games.Count(g => g.ResultId == (int)ResultOfGame.Lose);
 											var countOfRounds = userDb.Games.Sum(g => g.CountOfRounds);
 											var ratingPosition = (await _db.Users.OrderByDescending(u => u.Score).ToListAsync(token)).FindIndex(u => u.TgId == userTg.Id) + 1;
 
@@ -291,7 +286,7 @@ public class Host
 						case not BotState.WaitingState when callbackQuery.Data == "ToWaitingState":
 							{
 								await userDb.SetStateAsync(BotState.WaitingState, client, _db, update, token);
-								await _db.SaveChangesAsync(token);
+
 								return;
 							}
 						case BotState.ChoiceState:
@@ -316,13 +311,13 @@ public class Host
 												await userDb.SetStateAsync(BotState.WinOrChoiceState, client, _db, update, token);
 											}
 
-											await _db.SaveChangesAsync(token);
+
 											return;
 										}
 									case "Collect":
 										{
 											await userDb.SetStateAsync(BotState.CollectState, client, _db, update, token);
-											await _db.SaveChangesAsync(token);
+
 											return;
 										}
 									case "CheckBullets":
@@ -359,13 +354,13 @@ public class Host
 									case "SetBulletsType":
 										{
 											await userDb.SetStateAsync(BotState.SetBulletsTypeState, client, _db, update, token);
-											await _db.SaveChangesAsync(token);
+
 											return;
 										}
 									case "SetBulletsCount":
 										{
 											await userDb.SetStateAsync(BotState.SetBulletsCountState, client, _db, update, token);
-											await _db.SaveChangesAsync(token);
+
 											return;
 										}
 								}
@@ -389,13 +384,13 @@ public class Host
 									case "ChangePlayerPointsState":
 										{
 											await userDb.SetStateAsync(BotState.AdminPanel_ChangePlayerPointsState, _bot, _db, update, token);
-											await _db.SaveChangesAsync(token);
+
 											return;
 										}
 									case "MessageForEveryone":
 										{
 											await userDb.SetStateAsync(BotState.AdminPanel_MessageForEveryoneState, _bot, _db, update, token);
-											await _db.SaveChangesAsync(token);
+
 											return;
 										}
 								}
