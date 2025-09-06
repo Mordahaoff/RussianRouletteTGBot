@@ -74,8 +74,8 @@ public class Host
 					var msg = update.Message!;
 					var userTg = msg.From!;
 					var chat = msg.Chat!;
-
 					var userTgId = userTg.Id;
+
 					if (!await _db.Users.AnyAsync(u => u.TgId == userTgId, token) && msg.Text == "/start")
 					{
 						// Добавление нового юзера
@@ -94,7 +94,6 @@ public class Host
 						var template = new Template(token);
 						await template.ReadTemplateAsync("files/txt/Start.txt");
 						var botMessage = template.GetTemplate();
-
 						await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 
 						//  Изменение состояние юзера в БД

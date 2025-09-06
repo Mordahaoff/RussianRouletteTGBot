@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RussianRouletteTGBot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2a3830277b6ccb922fc0a3e09bf93b7ef882071d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e82fdc345d98e043dd5d394115e7bb4f58d1dca8")]
 [assembly: System.Reflection.AssemblyProductAttribute("RussianRouletteTGBot")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RussianRouletteTGBot")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

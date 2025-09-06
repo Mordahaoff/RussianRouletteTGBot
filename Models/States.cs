@@ -619,13 +619,44 @@ public class AdminPanel_ChangePlayerPointsState : State
         string botMessage;
         var message = update.Message!;
         var values = message.Text!.Replace("[", "").Replace("]", "").Split(' ');
-        if (long.TryParse(values[0], out var id) && int.TryParse(values[1], out var score))
+
+        if (values.Length < 2)
         {
-            if (await db.Users.AnyAsync(u => u.TgId == id, token))
+            botMessage = "❌ Ошибка: некорректный формат команды. ❌";
+            await SendResponseAsync(bot, db, message, botMessage, token);
+            return;
+        }
+
+        if (!int.TryParse(values[1], out var score))
+        {
+            botMessage = "❌ Ошибка: введено некорректное число очков. ❌";
+            await SendResponseAsync(bot, db, message, botMessage, token);
+            return;
+        }
+
+        string firstParam = values[0];
+        if (firstParam.Equals("all", StringComparison.CurrentCultureIgnoreCase))
+        {
+            // Обновляем всех пользователей
+            var userList = await db.Users.ToListAsync(token);
+            foreach (var user in userList)
             {
-                var userDb = await db.Users.FirstAsync(u => u.TgId == id, token);
-                userDb.Score += score;
-                if (userDb.MaxScore < userDb.Score) userDb.MaxScore = userDb.Score;
+                SetUserScore(user, score);
+            }
+            db.Users.UpdateRange(userList);
+            await db.SaveChangesAsync(token);
+            botMessage = "✅ Операция выполнена успешно. ✅";
+        }
+        else if (long.TryParse(firstParam, out var tgId))
+        {
+            // Обновляем конкретного пользователя по TG ID
+            var userExists = await db.Users.AnyAsync(u => u.TgId == tgId, token);
+            if (userExists)
+            {
+                var userDb = await db.Users.FirstAsync(u => u.TgId == tgId, token);
+                SetUserScore(userDb, score);
+                db.Users.Update(userDb);
+                await db.SaveChangesAsync(token);
                 botMessage = "✅ Операция выполнена успешно. ✅";
             }
             else
@@ -635,13 +666,24 @@ public class AdminPanel_ChangePlayerPointsState : State
         }
         else
         {
-            botMessage = "❌ Ошибка: введены некорректные данные. ❌";
+            botMessage = "❌ Ошибка: введено некорректное первое значение. ❌";
         }
 
+        await SendResponseAsync(bot, db, message, botMessage, token);
+        await db.SaveChangesAsync(token);
+    }
+
+    private static void SetUserScore(Entities.User user, int score)
+    {
+        user.Score += score;
+        if (user.MaxScore < user.Score) user.MaxScore = user.Score;
+    }
+
+    private static async Task SendResponseAsync(ITelegramBotClient bot, RouletteContext db, Message message, string botMessage, CancellationToken token)
+    {
         var inlineKeyboard = InlineKeyboards.GetToAdminPanelKeyboard();
         var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, message.From!.Id, token);
         await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, botMessage, inlineKeyboard, token);
-        await db.SaveChangesAsync(token);
     }
 }
 
