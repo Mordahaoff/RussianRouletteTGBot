@@ -5,7 +5,7 @@ namespace RussianRouletteTGBot.Models.Entities;
 
 public partial class User
 {
-    public async Task SetStateAsync(BotState newState, ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
+    public async Task EnterStateAsync(BotState newState, ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
         BotStateId = (int)newState;
         db.Users.Update(this);
@@ -21,6 +21,19 @@ public partial class User
         {
             var stateInstance = StateFactory.GetState(botstate);
             await stateInstance.DoAsync(bot, db, update, token);
+        }
+        else
+        {
+            throw new ArgumentException($"Unknown BotStateId: {BotStateId}");
+        }
+    }
+
+    public async Task RepeatEnterStateAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
+    {
+        if (Enum.TryParse<BotState>(BotStateId.ToString(), out var currentState))
+        {
+            var stateInstance = StateFactory.GetState(currentState);
+            await stateInstance.EnterAsync(bot, db, update, token);
         }
         else
         {

@@ -15,16 +15,8 @@ public abstract class State
     public abstract Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token);
 
     public abstract Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token);
-}
-
-public class WaitingState : State
-{
-    public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
+    public static void GetUpdateUserData(Update update, out long userTgId, out long chatId)
     {
-        long ownerId = 825165091;
-        var botMessage = "<b>Перечень возможных команд представлен ниже. </b>";
-        long userTgId, chatId;
-
         if (update.CallbackQuery != null)
         {
             userTgId = update.CallbackQuery.From.Id;
@@ -39,18 +31,32 @@ public class WaitingState : State
         {
             throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
         }
+    }
 
-        var inlineKeyboard = InlineKeyboards.GetMenuKeyboard(userTgId == ownerId);
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
-
+    public static async Task EditMessageOrSendAndUpdateServiceInfo(ITelegramBotClient bot, RouletteContext db, Update update, long userTgId, long chatId, string botMessage, InlineKeyboardMarkup inlineKeyboard, CancellationToken token)
+    {
+        var si = await ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
         if (update.CallbackQuery != null)
         {
             await bot.EditMessageText(chatId, (int)si.IdMessage!, botMessage, ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
         }
         else
         {
-            await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, chatId, botMessage, inlineKeyboard, token);
+            await ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, chatId, botMessage, inlineKeyboard, token);
         }
+    }
+}
+
+public class WaitingState : State
+{
+    public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
+    {
+        long ownerId = 825165091;
+        var botMessage = "<b>Перечень возможных команд представлен ниже. </b>";
+        GetUpdateUserData(update, out long userTgId, out long chatId);
+
+        var inlineKeyboard = InlineKeyboards.GetMenuKeyboard(userTgId == ownerId);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage, inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -64,11 +70,9 @@ public class BetState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
-        var userTgId = callbackQuery.From.Id;
+        GetUpdateUserData(update, out long userTgId, out long chatId);
 
-        var settings = await Extensions.Setting.GetSettingsAsync(db, userTgId, token);
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
+        var settings = await Setting.GetSettingsAsync(db, userTgId, token);
         var userDb = settings.User;
 
         var dict = new Dictionary<string, string> {
@@ -85,14 +89,15 @@ public class BetState : State
         var botMessage = template.GetTemplate();
 
         var inlineKeyboard = InlineKeyboards.GetToWaitingStateKeyboard();
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage, inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
         var msg = update.Message!;
         var userTgId = msg.From!.Id;
-        var settings = await Extensions.Setting.GetSettingsAsync(db, userTgId, token);
+
+        var settings = await Setting.GetSettingsAsync(db, userTgId, token);
         var userDb = settings.User;
 
         string botMessage;
@@ -149,14 +154,14 @@ public class BetState : State
         }
 
         await bot.SendMessage(msg.Chat.Id, botMessage, ParseMode.Html, cancellationToken: token);
-        await userDb.SetStateAsync(BotState.ChoiceState, bot, db, update, token);
+        await userDb.EnterStateAsync(BotState.ChoiceState, bot, db, update, token);
     }
 
     public static async Task SendErrorMessageAsync(ITelegramBotClient bot, RouletteContext db, long userTgId, long chatId, string botMessage, CancellationToken token)
     {
         var inlineKeyboard = InlineKeyboards.GetToWaitingStateKeyboard();
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
-        await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, chatId, botMessage, inlineKeyboard, token);
+        var si = await ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
+        await ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, chatId, botMessage, inlineKeyboard, token);
     }
 }
 
@@ -164,25 +169,9 @@ public class ChoiceState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        long userTgId, chatId;
-        if (update.CallbackQuery != null)
-        {
-            userTgId = update.CallbackQuery.From.Id;
-            chatId = update.CallbackQuery.Message!.Chat.Id;
-        }
-        else if (update.Message != null)
-        {
-            userTgId = update.Message.From!.Id;
-            chatId = update.Message.Chat.Id;
-        }
-        else
-        {
-            throw new InvalidOperationException("Neither CallbackQuery nor Message is available.");
-        }
+        GetUpdateUserData(update, out long userTgId, out long chatId);
 
-        var game = await db.Games
-            .Include(g => g.BulletsInGames)
-            .Include(g => g.User).FirstAsync(g => g.User.TgId == userTgId && g.ResultId == null, token);
+        var game = await Game.GetGameWithBulletsByUserTgId(db, userTgId, token);
 
         var botMessage = new StringBuilder();
         if (game.CountOfRounds != 1)
@@ -210,10 +199,10 @@ public class ChoiceState : State
                 ]
             ]);
 
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
-        if (game.CountOfRounds == 1)
+        var si = await ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
+        if (game.CountOfRounds == 1 || update.Message != null)
         {
-            await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, chatId, botMessage.ToString(), inlineKeyboard, token);
+            await ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, chatId, botMessage.ToString(), inlineKeyboard, token);
         }
         else
         {
@@ -232,14 +221,15 @@ public class CollectState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
-        var userTgId = callbackQuery.From.Id;
+        GetUpdateUserData(update, out long userTgId, out long chatId);
+
         var game = await db.Games
             .Include(g => g.User)
             .Include(g => g.BulletsInGames)
             .Include(g => g.Settings)
                 .ThenInclude(g => g.TypeOfBullet)
-            .FirstAsync(g => g.User.TgId == userTgId && g.ResultId == null, token);
+            .OrderByDescending(g => g.IdGame)
+            .FirstAsync(g => g.User.TgId == userTgId, token);
         var userDb = game.User;
 
         game.ResultId = (int)ResultOfGame.Collect;
@@ -280,8 +270,7 @@ public class CollectState : State
                 ]
             ]);
 
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage.ToString(), inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -295,13 +284,14 @@ public class WinState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
-        var userTgId = callbackQuery.From.Id;
+        GetUpdateUserData(update, out long userTgId, out long chatId);
+
         var game = await db.Games
             .Include(g => g.User)
             .Include(g => g.Settings)
                 .ThenInclude(g => g.TypeOfBullet)
-            .FirstAsync(g => g.User.TgId == userTgId && g.ResultId == null, token);
+            .OrderByDescending(g => g.IdGame)
+            .FirstAsync(g => g.User.TgId == userTgId, token);
         var userDb = game.User;
         game.ResultId = (int)ResultOfGame.Win;
 
@@ -333,8 +323,7 @@ public class WinState : State
                 ]
             ]);
 
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage.ToString(), inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -348,12 +337,9 @@ public class LoseState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
-        var userTgId = callbackQuery.From.Id;
-        var game = await db.Games
-            .Include(g => g.User)
-            .Include(g => g.BulletsInGames)
-            .FirstAsync(g => g.User.TgId == userTgId && g.ResultId == null, token);
+        GetUpdateUserData(update, out long userTgId, out long chatId);
+
+        var game = await Game.GetGameWithBulletsByUserTgId(db, userTgId, token);
         game.ResultId = (int)ResultOfGame.Lose;
         game.Winning = 0;
 
@@ -392,8 +378,7 @@ public class LoseState : State
                 ]
             ]);
 
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage.ToString(), inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -407,13 +392,8 @@ public class SettingsState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
-        var userTgId = callbackQuery.From.Id;
-        var userDb = await db.Users.FirstAsync(u => u.TgId == userTgId, token);
-
-        var settings = await db.Settings
-            .Include(s => s.TypeOfBullet)
-            .FirstAsync(s => s.UserId == userDb.IdUser, token);
+        GetUpdateUserData(update, out long userTgId, out long chatId);
+        var settings = await Setting.GetSettingsAsync(db, userTgId, token);
 
         var dict = new Dictionary<string, string> {
             { "{title}", settings.TypeOfBullet.Title },
@@ -437,8 +417,7 @@ public class SettingsState : State
             ]
         ]);
 
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage, inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -452,7 +431,7 @@ public class SetBulletsTypeState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
+        GetUpdateUserData(update, out long userTgId, out long chatId);
         var bulletsTypeList = await db.TypesOfBullets.ToListAsync(token);
 
         var sb = new StringBuilder();
@@ -486,8 +465,7 @@ public class SetBulletsTypeState : State
             ]
         ]);
 
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, callbackQuery.From.Id, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage, inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -501,7 +479,7 @@ public class SetBulletsCountState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
+        GetUpdateUserData(update, out long userTgId, out long chatId);
         var sb = new StringBuilder();
         for (int i = 1; i <= 6; i++)
         {
@@ -533,8 +511,7 @@ public class SetBulletsCountState : State
             ]
         ]);
 
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, callbackQuery.From.Id, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage, inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -549,23 +526,21 @@ public class WinOrChoiceState : State
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
         var userTgId = update.CallbackQuery!.From.Id;
-        var game = await db.Games
-            .Include(g => g.BulletsInGames)
-            .Include(g => g.User)
-            .FirstAsync(g => g.User.TgId == userTgId && g.ResultId == null, token);
+        var game = await Game.GetGameWithBulletsByUserTgId(db, userTgId, token);
+
         var userDb = game.User;
 
         // Если остались последние раунды, где только пули, то победа
         if (6 - game.CountOfRounds == game.BulletsInGames.Count)
         {
-            await userDb.SetStateAsync(BotState.WinState, bot, db, update, token);
+            await userDb.EnterStateAsync(BotState.WinState, bot, db, update, token);
         }
         else
         {
             game.CountOfRounds++;
             db.Games.Update(game);
             await db.SaveChangesAsync(token);
-            await userDb.SetStateAsync(BotState.ChoiceState, bot, db, update, token);
+            await userDb.EnterStateAsync(BotState.ChoiceState, bot, db, update, token);
         }
     }
 
@@ -580,7 +555,7 @@ public class AdminPanelState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
+        GetUpdateUserData(update, out long userTgId, out long chatId);
         string botMessage = "Админ-панель.";
         var inlineKeyboard = new InlineKeyboardMarkup([
             [
@@ -591,8 +566,7 @@ public class AdminPanelState : State
                 InlineKeyboardButton.WithCallbackData("[Вернуться]", "ToWaitingState")
             ],
         ]);
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, callbackQuery.From.Id, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage, inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -607,14 +581,13 @@ public class AdminPanel_ChangePlayerPointsState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
+        GetUpdateUserData(update, out long userTgId, out long chatId);
         var template = new Template(token);
         await template.ReadTemplateAsync("files/txt/AdminPanel_ChangePlayerPointsState.txt");
         var botMessage = template.GetTemplate();
 
         var inlineKeyboard = InlineKeyboards.GetToAdminPanelKeyboard();
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, callbackQuery.From.Id, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage, inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
@@ -683,8 +656,8 @@ public class AdminPanel_ChangePlayerPointsState : State
     private static async Task SendResponseAsync(ITelegramBotClient bot, RouletteContext db, Message message, string botMessage, CancellationToken token)
     {
         var inlineKeyboard = InlineKeyboards.GetToAdminPanelKeyboard();
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, message.From!.Id, token);
-        await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, botMessage, inlineKeyboard, token);
+        var si = await ServiceInfo.GetServiceInfoAsyncByTgId(db, message.From!.Id, token);
+        await ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, botMessage, inlineKeyboard, token);
     }
 }
 
@@ -692,26 +665,25 @@ public class AdminPanel_MessageForEveryoneState : State
 {
     public override async Task EnterAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
-        var callbackQuery = update.CallbackQuery!;
+        GetUpdateUserData(update, out long userTgId, out long chatId);
         var template = new Template(token);
         await template.ReadTemplateAsync("files/txt/AdminPanel_MessageForEveryoneState.txt");
         var botMessage = template.GetTemplate();
 
         var inlineKeyboard = InlineKeyboards.GetToAdminPanelKeyboard();
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, callbackQuery.From.Id, token);
-        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: token);
+        await EditMessageOrSendAndUpdateServiceInfo(bot, db, update, userTgId, chatId, botMessage, inlineKeyboard, token);
     }
 
     public override async Task DoAsync(ITelegramBotClient bot, RouletteContext db, Update update, CancellationToken token)
     {
         var message = update.Message!;
         var inlineKeyboard = InlineKeyboards.GetToAdminPanelKeyboard();
-        var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, message.From!.Id, token);
+        var si = await ServiceInfo.GetServiceInfoAsyncByTgId(db, message.From!.Id, token);
 
         if (string.IsNullOrEmpty(message.Text))
         {
             var errorMessage = "❌ Ошибка: введите текстовое сообщение. ❌";
-            await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, errorMessage, inlineKeyboard, token);
+            await ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, errorMessage, inlineKeyboard, token);
             return;
         }
 
@@ -723,6 +695,6 @@ public class AdminPanel_MessageForEveryoneState : State
         }
 
         var botMessage = "✅ Операция выполнена успешно. ✅";
-        await Extensions.ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, botMessage, inlineKeyboard, token);
+        await ServiceInfo.SendAndUpdateServiceInfoInDbAsync(bot, db, si, message.Chat.Id, botMessage, inlineKeyboard, token);
     }
 }

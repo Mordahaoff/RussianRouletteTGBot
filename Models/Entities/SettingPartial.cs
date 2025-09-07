@@ -1,11 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using RussianRouletteTGBot.Models.Entities;
 
-namespace RussianRouletteTGBot.Models.Extensions;
+namespace RussianRouletteTGBot.Models.Entities;
 
 public partial class Setting
 {
-    public static async Task<Entities.Setting> GetSettingsAsync(RouletteContext db, long userTgId, CancellationToken token)
+    public static async Task<Setting> GetSettingsAsync(RouletteContext db, long userTgId, CancellationToken token)
     {
         var settings = await db.Settings
             .Include(s => s.TypeOfBullet)

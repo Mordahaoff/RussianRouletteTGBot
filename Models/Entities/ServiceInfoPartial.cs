@@ -1,13 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using RussianRouletteTGBot.Models.Entities;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace RussianRouletteTGBot.Models.Extensions;
+namespace RussianRouletteTGBot.Models.Entities;
 
 public partial class ServiceInfo
 {
-    public static async Task<Entities.ServiceInfo> GetServiceInfoAsyncByTgId(RouletteContext db, long userTgId, CancellationToken token)
+    public static async Task<ServiceInfo> GetServiceInfoAsyncByTgId(RouletteContext db, long userTgId, CancellationToken token)
     {
         var ServiceInfo = await db.ServiceInfos
             .Include(si => si.User)
@@ -16,7 +15,7 @@ public partial class ServiceInfo
         return ServiceInfo;
     }
 
-    public static async Task<Entities.ServiceInfo> GetServiceInfoAsyncByDbId(RouletteContext db, long userDbId, CancellationToken token)
+    public static async Task<ServiceInfo> GetServiceInfoAsyncByDbId(RouletteContext db, long userDbId, CancellationToken token)
     {
         var ServiceInfo = await db.ServiceInfos
             .FirstOrDefaultAsync(si => si.UserId == userDbId, token)

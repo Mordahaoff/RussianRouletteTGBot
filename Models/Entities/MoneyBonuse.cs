@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace RussianRouletteTGBot.Models.Entities;
+﻿namespace RussianRouletteTGBot.Models.Entities;
 
 public partial class MoneyBonuse
 {

@@ -1,6 +1,3 @@
-using System.Security.Principal;
-using System.Text;
-
 namespace RussianRouletteTGBot.Models;
 
 public class Template(CancellationToken token)

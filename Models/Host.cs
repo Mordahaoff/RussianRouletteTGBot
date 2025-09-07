@@ -8,9 +8,6 @@ using Telegram.Bot.Types.Enums;
 using RussianRouletteTGBot.Models.Entities;
 using RussianRouletteTGBot.Models.Extensions;
 using User = RussianRouletteTGBot.Models.Entities.User;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Telegram.Bot.Types.ReplyMarkups;
-using System.Formats.Asn1;
 
 namespace RussianRouletteTGBot.Models;
 
@@ -75,8 +72,9 @@ public class Host
 					var userTg = msg.From!;
 					var chat = msg.Chat!;
 					var userTgId = userTg.Id;
+					var userExists = await _db.Users.AnyAsync(u => u.TgId == userTgId, token);
 
-					if (!await _db.Users.AnyAsync(u => u.TgId == userTgId, token) && msg.Text == "/start")
+					if (!userExists && msg.Text == "/start")
 					{
 						// Добавление нового юзера
 						var userDb = new User() { TgId = userTgId, FirstName = userTg.FirstName };
@@ -97,17 +95,25 @@ public class Host
 						await _bot.SendMessage(chat.Id, botMessage.ToString(), ParseMode.Html, cancellationToken: token);
 
 						//  Изменение состояние юзера в БД
-						await userDb.SetStateAsync(BotState.WaitingState, client, _db, update, token);
-
+						await userDb.EnterStateAsync(BotState.WaitingState, client, _db, update, token);
 						return;
 					}
 
-					if (await _db.Users.AnyAsync(u => u.TgId == userTgId, token))
+					// Когда пользователю требуется повторить состояние команды
+					if (userExists && msg.Text == "/repeat")
+					{
+						var userDb = await _db.Users.FirstAsync(u => u.TgId == userTgId, token);
+						await userDb.RepeatEnterStateAsync(client, _db, update, token);
+						return;
+					}
+
+					if (userExists)
 					{
 						var userDb = await _db.Users.FirstAsync(u => u.TgId == userTgId, token);
 						await userDb.DoStateAsync(client, _db, update, token);
 						return;
 					}
+
 					return;
 				}
 			case UpdateType.CallbackQuery:
@@ -123,17 +129,17 @@ public class Host
 					{
 						case BotState.WaitingState or BotState.AdminPanel_ChangePlayerPointsState or BotState.AdminPanel_MessageForEveryoneState when callbackQuery.Data == "AdminPanel":
 							{
-								await userDb.SetStateAsync(BotState.AdminPanelState, _bot, _db, update, token);
+								await userDb.EnterStateAsync(BotState.AdminPanelState, _bot, _db, update, token);
 								return;
 							}
 						case BotState.WaitingState or BotState.CollectState or BotState.WinState or BotState.LoseState when callbackQuery.Data == "Play":
 							{
-								await userDb.SetStateAsync(BotState.BetState, client, _db, update, token);
+								await userDb.EnterStateAsync(BotState.BetState, client, _db, update, token);
 								return;
 							}
 						case BotState.WaitingState or BotState.SetBulletsTypeState or BotState.SetBulletsCountState when callbackQuery.Data == "Settings":
 							{
-								await userDb.SetStateAsync(BotState.SettingsState, client, _db, update, token);
+								await userDb.EnterStateAsync(BotState.SettingsState, client, _db, update, token);
 
 								return;
 							}
@@ -285,7 +291,7 @@ public class Host
 							}
 						case not BotState.WaitingState when callbackQuery.Data == "ToWaitingState":
 							{
-								await userDb.SetStateAsync(BotState.WaitingState, client, _db, update, token);
+								await userDb.EnterStateAsync(BotState.WaitingState, client, _db, update, token);
 
 								return;
 							}
@@ -303,12 +309,12 @@ public class Host
 
 											if (game.BulletsInGames.Any(item => item.IndexOfBullet == game.CountOfRounds))
 											{
-												await userDb.SetStateAsync(BotState.LoseState, client, _db, update, token);
+												await userDb.EnterStateAsync(BotState.LoseState, client, _db, update, token);
 											}
 											else
 											{
 												game.Winning = (int)Math.Round(game.Winning * MultiplierFactory.GetMultiplier(game.BulletsInGames.Count), MidpointRounding.AwayFromZero);
-												await userDb.SetStateAsync(BotState.WinOrChoiceState, client, _db, update, token);
+												await userDb.EnterStateAsync(BotState.WinOrChoiceState, client, _db, update, token);
 											}
 
 
@@ -316,16 +322,13 @@ public class Host
 										}
 									case "Collect":
 										{
-											await userDb.SetStateAsync(BotState.CollectState, client, _db, update, token);
+											await userDb.EnterStateAsync(BotState.CollectState, client, _db, update, token);
 
 											return;
 										}
 									case "CheckBullets":
 										{
-											var game = await _db.Games
-												.Include(g => g.User)
-												.Include(g => g.BulletsInGames)
-												.FirstAsync(g => g.User.TgId == userTg.Id && g.ResultId == null, token);
+											var game = await Entities.Game.GetGameWithBulletsByUserTgId(_db, userTg.Id, token);
 
 											var botMessage = new StringBuilder("Пули ждут Вас на раундах: ");
 											var bullets = game.BulletsInGames.OrderBy(b => b.IndexOfBullet);
@@ -353,13 +356,13 @@ public class Host
 								{
 									case "SetBulletsType":
 										{
-											await userDb.SetStateAsync(BotState.SetBulletsTypeState, client, _db, update, token);
+											await userDb.EnterStateAsync(BotState.SetBulletsTypeState, client, _db, update, token);
 
 											return;
 										}
 									case "SetBulletsCount":
 										{
-											await userDb.SetStateAsync(BotState.SetBulletsCountState, client, _db, update, token);
+											await userDb.EnterStateAsync(BotState.SetBulletsCountState, client, _db, update, token);
 
 											return;
 										}
@@ -383,13 +386,13 @@ public class Host
 								{
 									case "ChangePlayerPointsState":
 										{
-											await userDb.SetStateAsync(BotState.AdminPanel_ChangePlayerPointsState, _bot, _db, update, token);
+											await userDb.EnterStateAsync(BotState.AdminPanel_ChangePlayerPointsState, _bot, _db, update, token);
 
 											return;
 										}
 									case "MessageForEveryone":
 										{
-											await userDb.SetStateAsync(BotState.AdminPanel_MessageForEveryoneState, _bot, _db, update, token);
+											await userDb.EnterStateAsync(BotState.AdminPanel_MessageForEveryoneState, _bot, _db, update, token);
 
 											return;
 										}
@@ -466,7 +469,7 @@ public class Host
 
 	private static async Task TryEditServiceInfo(ITelegramBotClient bot, RouletteContext db, long chatId, string callbackQueryId, long userTgId, string botMessage, CancellationToken token)
 	{
-		var si = await Extensions.ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
+		var si = await ServiceInfo.GetServiceInfoAsyncByTgId(db, userTgId, token);
 		try
 		{
 			await bot.EditMessageText(chatId, (int)si.IdMessage!, botMessage.ToString(), ParseMode.Html, replyMarkup: InlineKeyboards.GetMenuKeyboard(userTgId == OWNER_ID), cancellationToken: token);
